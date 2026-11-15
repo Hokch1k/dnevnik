@@ -67,6 +67,7 @@ function decChat(str){
     // шаблон недели: 23 и 24 ноября
     const tmpl=JSON.parse(await c.eval(`(()=>{go('2026-11-23');const a=document.querySelectorAll('.card').length;const t1=document.querySelector('#ttl').textContent;go('2026-11-24');const b=document.querySelectorAll('.card').length;const t2=document.querySelector('#ttl').textContent;go('2026-11-21');const weekend=document.querySelector('#list').textContent.trim().slice(0,30);return JSON.stringify({mon:a,monTitle:t1,tue:b,tueTitle:t2,weekend:weekend})})()`));
     console.log('TEMPLATE',JSON.stringify(tmpl));
+    console.log('template days have no hw:',await c.eval(`(go('2026-11-23'),document.querySelectorAll('.hw:not(.no)').length===0)`));
 
     // до входа карандашей нет
     console.log('no pencils before login:',await c.eval(`document.querySelectorAll('[data-aedit]').length===0`));
