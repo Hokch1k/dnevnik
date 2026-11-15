@@ -91,6 +91,21 @@ class Client{
     console.log('ONLINE',JSON.stringify(online,null,1));
     await c.shot(path.join(OUT,'dnevnik-online.png'));
 
+    const sheet=JSON.parse(await c.eval(`(()=>{
+      document.querySelector('#repoBtn').click();
+      const s=document.querySelector('#sheet');
+      return JSON.stringify({
+        open:s.classList.contains('open'),
+        rows:s.querySelectorAll('.row').length,
+        hasApk:s.innerHTML.indexOf('Dnevnik.apk')>=0,
+        text:(s.textContent||'').replace(/\\s+/g,' ').trim().slice(0,160)
+      });
+    })()`));
+    console.log('SHEET',JSON.stringify(sheet,null,1));
+    await sleep(700);
+    await c.shot(path.join(OUT,'dnevnik-sheet.png'));
+    await c.eval("document.querySelector('#s_close').click()");
+
     // офлайн
     await c.send('Network.enable');
     await c.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
