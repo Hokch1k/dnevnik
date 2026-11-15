@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b1226">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Дневник — расписание и домашнее задание, работает офлайн">
+<title>Дневник</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#0b1226;--ink:#eaf3ff;--mut:#9fb4d6;--glass:rgba(255,255,255,.08);--line:rgba(255,255,255,.15);--a:#7cc7ff;--b:#b69cff;--ok:#6ee7a8;--warn:#ffd166;--bad:#ff7a8a;--offline:#d32f2f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit;background:none;border:none;outline:none}
+#offlineBanner{background:var(--offline);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;font-size:13.5px;line-height:1.3;flex-shrink:0;max-height:0;overflow:hidden;padding:0 16px;transition:max-height .3s ease,padding .3s ease}
+#offlineBanner.show{max-height:140px;padding:calc(env(safe-area-inset-top) + 9px) 16px 9px}
+#offlineBanner.warn{background:#8a6d1f}
+#bg{position:fixed;inset:0;background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E") center/cover;z-index:0}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:1;padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;display:flex;align-items:center;gap:10px;flex-shrink:0;background:linear-gradient(180deg,rgba(15,22,44,.95),transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.title{flex:1;min-width:0}
+.title h1{margin:0;font-size:26px;font-weight:800;letter-spacing:.2px;background:linear-gradient(135deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent}
+.title small{display:block;color:var(--mut);font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:44px;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;cursor:pointer;transition:transform .12s,background .2s,box-shadow .2s;flex-shrink:0}
+.ib:active{transform:scale(.9)}
+.ib:hover{background:rgba(255,255,255,.12)}
+.ib svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.week{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(15,22,44,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);flex-shrink:0}
+.week .ib{width:38px;height:40px;border-radius:12px}
+.tabs{flex:1;min-width:0;display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.tab{border:1px solid transparent;background:transparent;border-radius:12px;padding:8px 0 6px;text-align:center;cursor:pointer;transition:all .18s;position:relative;min-height:52px;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+.tab span{display:block;font-size:11px;color:var(--mut);font-weight:600;line-height:1}
+.tab b{display:block;font-size:19px;font-weight:700;margin-top:2px;line-height:1}
+.tab.sel{background:linear-gradient(160deg,rgba(124,199,255,.4),rgba(182,156,255,.35));border-color:var(--line);box-shadow:0 6px 20px rgba(80,140,255,.3);transform:translateY(-1px)}
+.tab.sel span{color:#fff}
+.tab.td::after{content:"";position:absolute;left:50%;bottom:3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--a);box-shadow:0 0 8px var(--a)}
+.tab.off b{opacity:.3}
+main{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 16px calc(env(safe-area-inset-bottom) + 90px);-webkit-overflow-scrolling:touch}
+main::-webkit-scrollbar{width:0}
+.card{position:relative;margin:0 0 12px;padding:14px 16px;border-radius:20px;background:rgba(20,30,58,.65);border:1px solid var(--line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1);animation:up .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*50ms)}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.1) 50%,transparent 70%);background-size:250% 100%;animation:glint 7s linear infinite;pointer-events:none;animation-delay:calc(var(--i)*400ms)}
+@keyframes glint{0%{background-position:150% 0}100%{background-position:-100% 0}}
+@keyframes up{from{opacity:0;transform:translateY(16px) scale(.97)}}
+.fromL{animation-name:inL}.fromR{animation-name:inR}
+main.l .card{animation-name:inL}main.r .card{animation-name:inR}
+@keyframes inL{from{opacity:0;transform:translateX(-28px)}}
+@keyframes inR{from{opacity:0;transform:translateX(28px)}}
+.card.now{border-color:var(--a);box-shadow:0 0 0 2px rgba(124,199,255,.5),0 0 28px rgba(124,199,255,.35),0 8px 24px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1)}
+.top{display:flex;align-items:center;gap:10px}
+.num{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:14px;background:rgba(255,255,255,.1);flex:none}
+.now .num{background:linear-gradient(135deg,var(--a),var(--b));color:var(--bg);box-shadow:0 0 14px rgba(124,199,255,.5)}
+.nm{flex:1;min-width:0}
+.nm b{display:block;font-size:17px;line-height:1.25}
+.nm span{font-size:13px;color:var(--mut);margin-top:2px;display:block}
+.hw{margin-top:10px;padding:10px 12px;border-radius:13px;background:rgba(10,18,44,.4);font-size:15px;line-height:1.4;white-space:pre-wrap;word-break:break-word;border:1px solid rgba(124,199,255,.12)}
+.hw.no{color:var(--mut);font-size:13.5px;font-style:italic;background:rgba(124,199,255,.06);border-color:rgba(124,199,255,.18)}
+.empty{text-align:center;color:var(--mut);padding:60px 20px;font-size:17px;animation:up .6s both}
+.empty svg{width:80px;height:80px;stroke:var(--a);fill:none;stroke-width:1.5;opacity:.8;animation:spin 14s linear infinite;margin:0 auto 12px;display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;max-height:80vh;overflow:auto;padding:18px 20px calc(env(safe-area-inset-bottom) + 24px);border-radius:28px 28px 0 0;background:linear-gradient(180deg,rgba(40,60,120,.9),rgba(14,22,52,.98));backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--line);border-bottom:0;transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.9,.2,1)}
+.sheet.open{transform:none}
+.grip{width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.3);margin:-6px auto 14px}
+.rows{margin:6px 0 4px}
+.row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.row:last-child{border-bottom:0}
+.row span{color:var(--mut);font-size:13px;flex:1}
+.row b{font-size:14px;font-weight:600;text-align:right}
+.fld{margin-top:14px}
+.fld label{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
+.in{width:100%;border:1px solid var(--line);background:rgba(10,18,44,.55);border-radius:12px;padding:12px 14px;font-size:15px;color:var(--ink);transition:border-color .2s,box-shadow .2s}
+.in:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(124,199,255,.15)}
+.bar{display:flex;gap:8px;margin-top:18px}
+.bar .btn{flex:1}
+.btn{border:0;border-radius:14px;padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer;background:linear-gradient(135deg,var(--a),var(--b));color:var(--bg);transition:transform .1s,box-shadow .2s;box-shadow:0 4px 14px rgba(124,199,255,.35);min-height:48px}
+.btn:active{transform:scale(.96)}
+.btn.g{background:var(--glass);color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translate(-50%,30px);opacity:0;z-index:30;padding:12px 20px;border-radius:16px;background:rgba(20,30,70,.95);border:1px solid var(--line);transition:all .3s cubic-bezier(.2,.8,.2,1);pointer-events:none;max-width:88vw;text-align:center;font-size:14px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.syncing svg{animation:spin .9s linear infinite}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+@media (max-width:360px){
+  .title h1{font-size:22px}
+  .tab span{font-size:10px}.tab b{font-size:17px}.tab{padding:6px 1px 4px}
+  .nm b{font-size:15px}.nm span{font-size:12px}
+  .hw{font-size:14px;padding:9px 11px}
+  .btn{font-size:14px;padding:11px 14px;min-height:44px}
+}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+
+<div id="app">
+ <div id="offlineBanner" role="alert" aria-live="polite">Нет интернета</div>
+ <header>
+  <div class="title"><h1 id="ttl"></h1><small id="sub"></small></div>
+  <button class="ib" id="repoBtn" aria-label="О приложении и данные" title="О приложении и данные"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></button>
+  <button class="ib" id="refreshBtn" aria-label="Обновить" title="Обновить"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+ </header>
+ <div class="week">
+  <button class="ib" id="prevWeek" aria-label="Прошлая неделя"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <div class="tabs" id="tabs"></div>
+  <button class="ib" id="nextWeek" aria-label="Следующая неделя"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+ </div>
+ <main id="list"></main>
+</div>
+
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+
+<!--SEED_START-->
+<script type="application/json" id="seed">{"updated":"2026-11-15T17:00:00+03:00","week":"2026-11-16","days":[{"date":"2026-11-16","off":false,"lessons":[{"subject":"ВД Разговоры о важном","time":"8:30-9:10","hw":"","noHw":true},{"subject":"Физкультура","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Физика","time":"10:20-11:00","hw":"Закончить оформление, повторить пп. 23"},{"subject":"Рус. язык","time":"11:20-12:00","hw":"Упр. 139, с. 62"},{"subject":"Алгебра","time":"12:20-13:00","hw":"№ 385, 386, 401 (а)"},{"subject":"Биология","time":"13:20-14:00","hw":"Карточка задания «Папортникообразные».docx"},{"subject":"ВиС","time":"14:10-14:50","hw":""},{"subject":"ВД Новгородика","time":"14:55-15:35","hw":"","noHw":true}]},{"date":"2026-11-17","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":"Составить кроссворд по п. 20-23 (не менее 15 слов), подготовиться к проверочной работе"},{"subject":"Литература","time":"10:20-11:00","hw":"Вопр. 2, 3, 4, 5, с. 194 (192), письменно"},{"subject":"География","time":"11:20-12:00","hw":"П. 15, вопросы"},{"subject":"Геометрия","time":"12:20-13:00","hw":"№ 163, 167, 169, 172"},{"subject":"Англ. язык","time":"13:20-14:00","hw":"с."},{"subject":"ЭК Формула питания","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-18","off":false,"lessons":[{"subject":"Физика","time":"8:30-9:10","hw":"Выполнить задания в тетради"},{"subject":"ИЗО","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Рус. язык","time":"10:20-11:00","hw":""},{"subject":"История","time":"11:20-12:00","hw":""},{"subject":"Музыка","time":"12:20-13:00","hw":"","noHw":true},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"ВД Спорт.клуб: Бадминтон","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-19","off":false,"lessons":[{"subject":"Геометрия","time":"8:30-9:10","hw":""},{"subject":"Англ. язык","time":"9:20-10:00","hw":"с."},{"subject":"Труд (технология)","time":"10:20-11:00","hw":"П. 3.2"},{"subject":"Труд (технология)","time":"11:20-12:00","hw":""},{"subject":"Литература","time":"12:20-13:00","hw":""},{"subject":"ЭК Занимат. русский","time":"13:20-14:00","hw":""},{"subject":"ВД Россия — мои горизонты","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-20","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":""},{"subject":"Физкультура","time":"10:20-11:00","hw":""},{"subject":"Информатика","time":"11:20-12:00","hw":""},{"subject":"География","time":"12:20-13:00","hw":"П. 16, вопросы"},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"Англ. язык","time":"14:10-14:50","hw":"с."}]},{"date":"2026-11-21","off":true,"lessons":[]},{"date":"2026-11-22","off":true,"lessons":[]}]}</script>
+<!--SEED_END-->
+
+<script>
+const $=s=>document.querySelector(s);
+const WD=['ВС','ПН','ВТ','СР','ЧТ','ПТ','СБ'];
+const MON=['янв.','февр.','март','апр.','мая','июня','июля','авг.','сент.','окт.','нояб.','дек.'];
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const parse=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const add=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const mon=s=>{const d=parse(s);d.setDate(d.getDate()-(d.getDay()+6)%7);return iso(d)};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const TODAY=iso(new Date());
+const ICON={leaf:'<path d="M12 2v20M12 2l-3 3M12 2l3 3M4 7l16 10M20 7L4 17"/>'};
+
+/* Где искать данные. Первый адрес — рядом с приложением (GitHub Pages / встроенная копия в APK),
+   остальные — зеркала GitHub на случай, если один из домов недоступен. */
+const DEFAULT_SOURCES=[
+  'data.json',
+  'https://cdn.jsdelivr.net/gh/lothiann/dnevnik@main/data.json',
+  'https://raw.githubusercontent.com/lothiann/dnevnik/main/data.json',
+  'https://lothiann.github.io/dnevnik/data.json'
+];
+
+const S={data:{days:[]},sel:TODAY,dir:'',lastError:false,syncing:false,source:''};
+let lastUpdated=0;
+
+function sources(){
+  const custom=(ls.get('data_url','')||'').trim();
+  return custom?[custom,...DEFAULT_SOURCES]:DEFAULT_SOURCES.slice();
+}
+function seedData(){
+  try{return JSON.parse($('#seed').textContent||'{}')}catch(e){return null}
+}
+function loadCache(){
+  try{const raw=ls.get('diary_data','');if(raw)return JSON.parse(raw)}catch(e){}
+  return null;
+}
+function tsOf(d){const t=Date.parse(d&&d.updated);return isNaN(t)?0:t}
+function fmtWhen(ms){
+  if(!ms)return 'нет данных';
+  const d=new Date(ms);
+  const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
+  const sameYear=d.getFullYear()===new Date().getFullYear();
+  return (sameYear?'':d.getFullYear()+' ')+d.getDate()+' '+MON[d.getMonth()]+', '+hh+':'+mm;
+}
+
+async function fetchJSON(url,ms){
+  const ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  const timer=setTimeout(()=>{try{ctrl&&ctrl.abort()}catch(e){}},ms||9000);
+  try{
+    const r=await fetch(url,{cache:'no-store',signal:ctrl?ctrl.signal:undefined});
+    if(!r.ok)return null;
+    const j=await r.json();
+    if(!j||!Array.isArray(j.days))return null;
+    return j;
+  }catch(e){return null}finally{clearTimeout(timer)}
+}
+
+async function sync(manual){
+  if(S.syncing)return;
+  S.syncing=true;
+  $('#refreshBtn').classList.add('syncing');
+  try{
+    if(!navigator.onLine){
+      S.lastError=true;
+      updateBanner();
+      if(manual)toast('Нет интернета — показаны сохранённые данные');
+      return;
+    }
+    const urls=sources();
+    const results=await Promise.all(urls.map(u=>fetchJSON(u)));
+    let best=null,bestTs=0,bestUrl='';
+    results.forEach((d,i)=>{if(d&&tsOf(d)>=bestTs){best=d;bestTs=tsOf(d);bestUrl=urls[i]}});
+    if(best){
+      if(!lastUpdated||bestTs>=lastUpdated){
+        S.data=best;
+        if(!S.data.days)S.data.days=[];
+        ls.set('diary_data',JSON.stringify(best));
+        lastUpdated=bestTs||Date.now();
+        ls.set('diary_updated',String(lastUpdated));
+        S.source=bestUrl;
+      }
+      S.lastError=false;
+      render();updateBanner();
+      if(manual)toast('Данные обновлены · '+fmtWhen(lastUpdated));
+    }else{
+      S.lastError=true;
+      updateBanner();
+      if(manual)toast('Сервер недоступен — показаны сохранённые данные');
+    }
+  }finally{
+    S.syncing=false;
+    $('#refreshBtn').classList.remove('syncing');
+  }
+}
+function dayOf(d){return S.data.days.find(x=>x.date===d)}
+
+let dir='';
+function render(){
+  const m=mon(S.sel),d=parse(S.sel);
+  $('#ttl').textContent=WD[d.getDay()]+', '+d.getDate()+' '+MON[d.getMonth()];
+  const parts=[];
+  if(S.sel===TODAY)parts.push('сегодня');
+  if(lastUpdated)parts.push('обновлено '+fmtWhen(lastUpdated));
+  $('#sub').textContent=parts.join(' · ');
+  $('#tabs').innerHTML=Array.from({length:7}).map((_,i)=>{const s=add(m,i),x=parse(s),dd=dayOf(s);
+    return '<button class="tab'+(s===S.sel?' sel':'')+(s===TODAY?' td':'')+(dd&&dd.off?' off':'')+'" data-d="'+s+'"><span>'+WD[x.getDay()]+'</span><b>'+x.getDate()+'</b></button>'}).join('');
+  const L=$('#list');L.className=dir;dir='';
+  const day=dayOf(S.sel);let h='';
+  if(!S.data.days.length){
+    h='<div class="empty"><svg viewBox="0 0 24 24">'+ICON.leaf+'</svg>Пока нет данных.<br>Подключитесь к интернету и нажмите «Обновить»</div>';
+  }else if(!day){
+    h='<div class="empty"><svg viewBox="0 0 24 24">'+ICON.leaf+'</svg>Нет данных за этот день</div>';
+  }else if(day.off){
+    h='<div class="empty"><svg viewBox="0 0 24 24">'+ICON.leaf+'</svg>Выходной</div>';
+  }else if(!day.lessons||!day.lessons.length){
+    h='<div class="empty"><svg viewBox="0 0 24 24">'+ICON.leaf+'</svg>Уроков нет</div>';
+  }else{
+    const now=S.sel===TODAY?curLesson(day):-1;
+    h=day.lessons.map((l,i)=>card(l,i,now)).join('');
+  }
+  L.innerHTML=h;
+}
+function card(l,i,now){
+  let hw='';
+  if(l.hw)hw='<div class="hw">'+esc(l.hw)+'</div>';
+  else if(l.noHw)hw='<div class="hw no">— Без домашнего задания</div>';
+  return '<div class="card'+(i===now?' now':'')+'" style="--i:'+i+'"><div class="top"><div class="num">'+(i+1)+'</div><div class="nm"><b>'+esc(l.subject)+'</b><span>'+esc(l.time)+'</span></div></div>'+hw+'</div>';
+}
+function curLesson(day){const n=new Date(),t=n.getHours()*60+n.getMinutes();
+  return day.lessons.findIndex(l=>{const m=(l.time||'').match(/(\d+):(\d+)\s*-\s*(\d+):(\d+)/);return m&&t>=+m[1]*60+ +m[2]&&t<=+m[3]*60+ +m[4]})}
+
+function go(s){dir=s>S.sel?'r':'l';S.sel=s;render()}
+$('#tabs').onclick=e=>{const b=e.target.closest('[data-d]');if(b)go(b.dataset.d)};
+$('#prevWeek').onclick=()=>go(add(S.sel,-7));
+$('#nextWeek').onclick=()=>go(add(S.sel,7));
+let tx=0;const M=$('#list');
+M.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
+M.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>60)go(add(S.sel,dx<0?1:-1))},{passive:true});
+$('#refreshBtn').onclick=()=>sync(true);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();sync()}});
+
+function openSheet(h){$('#sheet').innerHTML='<div class="grip"></div>'+h;$('#sheet').classList.add('open')}
+function closeSheet(){$('#sheet').classList.remove('open')}
+window.onBack=()=>{if($('#sheet').classList.contains('open')){closeSheet();return true}return false};
+let sx=0;$('#sheet').addEventListener('touchstart',e=>sx=e.touches[0].clientY,{passive:true});
+$('#sheet').addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-sx>80&&$('#sheet').scrollTop<=0)closeSheet()},{passive:true});
+
+function showApkLink(){
+  const h=location.hostname;
+  return !!h&&h!=='localhost'&&h!=='127.0.0.1';
+}
+function infoSheet(){
+  const days=S.data.days.length;
+  const custom=(ls.get('data_url','')||'').trim();
+  openSheet(
+   '<div class="rows">'+
+     '<div class="row"><span>Последнее обновление</span><b>'+fmtWhen(lastUpdated)+'</b></div>'+
+     '<div class="row"><span>Дней в расписании</span><b>'+days+'</b></div>'+
+     '<div class="row"><span>Состояние</span><b>'+(navigator.onLine?'онлайн':'офлайн')+'</b></div>'+
+   '</div>'+
+   '<div class="fld"><label>Свой адрес данных (необязательно)</label><input class="in" id="s_url" placeholder="https://.../data.json" value="'+esc(custom)+'" autocomplete="url"></div>'+
+   '<div class="bar"><button class="btn" id="s_sync">Обновить сейчас</button><button class="btn g" id="s_save">Сохранить адрес</button></div>'+
+   '<div class="bar"><button class="btn g" id="s_install" style="display:none">Установить приложение</button><button class="btn g" id="s_close">Закрыть</button></div>'+
+   (showApkLink()?'<div class="fld"><a class="btn g" style="display:block;text-align:center;text-decoration:none;line-height:24px" href="Dnevnik.apk" download>Скачать APK для Android</a></div>':'')+
+   '<div class="fld"><small style="color:var(--mut);display:block">Домашнее задание подтягивается автоматически при каждом открытии приложения. Без интернета показывается последняя сохранённая версия.</small></div>');
+  $('#s_sync').onclick=()=>{closeSheet();sync(true)};
+  $('#s_close').onclick=closeSheet;
+  $('#s_save').onclick=()=>{
+    const url=$('#s_url').value.trim();
+    if(url){try{new URL(url)}catch(e){toast('Неверный URL');return}}
+    ls.set('data_url',url);
+    closeSheet();sync(true);
+  };
+  if(deferredPrompt){
+    const b=$('#s_install');b.style.display='';
+    b.onclick=async()=>{deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch(e){}deferredPrompt=null;closeSheet()};
+  }
+}
+$('#repoBtn').onclick=infoSheet;
+
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2600)}
+
+const banner=$('#offlineBanner');
+function updateBanner(){
+  const when=fmtWhen(lastUpdated);
+  if(!navigator.onLine){
+    banner.textContent='Нет интернета · последнее обновление: '+when;
+    banner.className='show';
+  }else if(S.lastError){
+    banner.textContent='Сервер недоступен · данные от '+when;
+    banner.className='show warn';
+  }else{
+    banner.className='';
+  }
+}
+window.addEventListener('online',()=>{updateBanner();sync()});
+window.addEventListener('offline',updateBanner);
+
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
+}
+
+(function boot(){
+  const cached=loadCache();
+  const seed=seedData();
+  const stored=Number(ls.get('diary_updated','0'))||0;
+  if(cached&&Array.isArray(cached.days)){
+    S.data=cached;lastUpdated=stored||tsOf(cached);
+  }else if(seed&&Array.isArray(seed.days)&&seed.days.length){
+    S.data=seed;lastUpdated=tsOf(seed);
+  }
+  if(!S.data.days.some(d=>d.date===S.sel)){
+    const next=S.data.days.map(d=>d.date).filter(x=>x>=TODAY).sort()[0];
+    if(next)S.sel=next;
+  }
+  render();updateBanner();sync();
+})();
+
+setInterval(()=>{if(!document.hidden&&navigator.onLine)sync()},90000);
+</script>
+</body>
+</html>

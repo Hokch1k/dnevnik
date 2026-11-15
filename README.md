@@ -1,0 +1,83 @@
+# Дневник
+
+Расписание уроков и домашнее задание для класса. Работает как обычный сайт (PWA) и как
+Android-приложение (APK). Без интернета показывает последнюю сохранённую версию.
+
+## Что где
+
+| Файл | Назначение |
+|------|------------|
+| `data.json` | **Единственное место, где лежит домашка.** Отсюда данные берёт приложение |
+| `index.html` | Сам интерфейс. Внутри — встроенная копия `data.json` (чтобы работало с первого запуска без сети) |
+| `sw.js` | Service worker: кэш для офлайна |
+| `tools/gen-seed.js` | Переносит `data.json` внутрь `index.html` |
+| `tools/check.js` | Проверка вёрстки и офлайн-режима в headless Chrome |
+| `android/` | Исходники Android-приложения (WebView + локальный сервер ассетов) |
+| `Dnevnik.apk` | Готовый APK для установки на телефон |
+
+## Как обновляется домашнее задание
+
+1. Правим `data.json` (даты, уроки, `hw`).
+2. `node tools/gen-seed.js` — встроенная копия в `index.html` обновляется.
+3. Коммитим и пушим в `main`.
+
+Приложение при каждом открытии (и каждые 90 секунд, пока открыто) скачивает `data.json`
+с GitHub и сохраняет его в память телефона. Если сети нет — показывает сохранённую копию и
+красную плашку «Нет интернета · последнее обновление: …».
+
+Формат `data.json`:
+
+```json
+{
+  "updated": "2026-11-15T17:00:00+03:00",
+  "days": [
+    {
+      "date": "2026-11-16",
+      "off": false,
+      "lessons": [
+        { "subject": "Физика", "time": "10:20-11:00", "hw": "Повторить пп. 23" },
+        { "subject": "ИЗО", "time": "9:20-10:00", "hw": "", "noHw": true }
+      ]
+    },
+    { "date": "2026-11-21", "off": true, "lessons": [] }
+  ]
+}
+```
+
+`updated` — время последнего изменения (по нему приложение понимает, какая копия свежее).
+`hw: ""` — домашки в источнике не было; `noHw: true` — «без домашнего задания».
+
+## Источники данных
+
+Приложение пробует несколько адресов и берёт самый свежий ответ:
+
+1. `data.json` рядом с приложением (GitHub Pages или встроенная копия в APK);
+2. `https://cdn.jsdelivr.net/gh/lothiann/dnevnik@main/data.json`;
+3. `https://raw.githubusercontent.com/lothiann/dnevnik/main/data.json`;
+4. `https://lothiann.github.io/dnevnik/data.json`.
+
+Свой адрес можно задать в приложении: кнопка «i» → «Свой адрес данных».
+
+## Локальный запуск
+
+```powershell
+node tools/dev-server.js            # http://127.0.0.1:8123
+node tools/check.js                 # проверка вёрстки + офлайн (нужен Chrome)
+```
+
+## Сборка APK
+
+Нужны JDK 17 и Android SDK (platform 34, build-tools 34.0.0).
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-17'
+$env:ANDROID_HOME='C:\Android\Sdk'
+cd android
+gradle assembleRelease
+```
+
+Готовый файл: `android/app/build/outputs/apk/release/app-release.apk`.
+Ключ подписи лежит в `keystore/` (в git не попадает — приложение обновляется поверх старой
+версии только с тем же ключом).
+
+Вёрстка для телефона: `applicationId ru.dnevnik.app`, minSdk 24 (Android 7+).

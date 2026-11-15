@@ -1,0 +1,63 @@
+plugins { id 'com.android.application' }
+
+def signingPropsFile = rootProject.file('keystore.properties')
+def hasSigning = signingPropsFile.exists()
+def signingProps = new Properties()
+if (hasSigning) signingPropsFile.withInputStream { signingProps.load(it) }
+
+android {
+    namespace 'ru.dnevnik.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ru.dnevnik.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 3
+        versionName '1.2'
+        resourceConfigurations += ['ru']
+    }
+
+    signingConfigs {
+        if (hasSigning) {
+            release {
+                storeFile rootProject.file(signingProps['storeFile'])
+                storePassword signingProps['storePassword']
+                keyAlias signingProps['keyAlias']
+                keyPassword signingProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (hasSigning) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+def webRoot = rootProject.projectDir.parentFile
+def wwwDir = file("$projectDir/src/main/assets/www")
+
+tasks.register('syncWebAssets', Sync) {
+    from(webRoot) {
+        include 'index.html', 'manifest.json', 'sw.js', 'data.json',
+                'icon-192.png', 'icon-512.png', 'icon.svg', 'Dnevnik.apk'
+        exclude 'Dnevnik.apk'
+    }
+    into wwwDir
+}
+
+preBuild.dependsOn 'syncWebAssets'
