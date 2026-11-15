@@ -510,8 +510,21 @@ function closeSheet(){
 }
 window.onBack=()=>{if($('#sheet').classList.contains('open')){closeSheet();return true}return false};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sheet').classList.contains('open'))closeSheet()});
-let sx=0;$('#sheet').addEventListener('touchstart',e=>{if(e.touches&&e.touches[0])sx=e.touches[0].clientY},{passive:true});
-$('#sheet').addEventListener('touchend',e=>{if(e.changedTouches&&e.changedTouches[0]&&e.changedTouches[0].clientY-sx>90&&$('#sheet').scrollTop<=0)closeSheet()},{passive:true});
+let sx=0,sy=0,sFromList=false;
+$('#sheet').addEventListener('touchstart',e=>{
+  if(!e.touches||!e.touches[0])return;
+  sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+  sFromList=!!(e.target&&e.target.closest&&e.target.closest('.chatList'));
+},{passive:true});
+$('#sheet').addEventListener('touchend',e=>{
+  if(!e.changedTouches||!e.changedTouches[0])return;
+  const t=e.changedTouches[0],dy=t.clientY-sy,dx=t.clientX-sx;
+  if(dy<=90||Math.abs(dx)>dy)return;
+  const list=(e.target&&e.target.closest&&e.target.closest('.chatList'))||(sFromList?$('#chatList'):null);
+  if(list&&list.scrollTop>0)return;
+  if($('#sheet').scrollTop>0)return;
+  closeSheet();
+},{passive:true});
 function clipFiles(e){
   const dt=e.clipboardData;
   if(!dt)return null;
@@ -538,7 +551,7 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=15;
+const APP_CODE=16;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
