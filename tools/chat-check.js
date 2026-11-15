@@ -87,6 +87,8 @@ class Client{
       console.log('DRY topic node:',exp);
       console.log('DRY topic match:',got===exp);
       console.log('DRY messages on server:',(await (await fetch('https://ntfy.sh/'+exp+'/json?poll=1&since=all')).text()).split('\n').filter(Boolean).length);
+      const sh=await c.send('Page.captureScreenshot',{format:'png'});
+      fs.writeFileSync(path.join(OUT,'chat-dry.png'),Buffer.from(sh.data,'base64'));
       return;
     }
     const msg='тест-'+Date.now();
