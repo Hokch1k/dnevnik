@@ -89,6 +89,7 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .chatHead{display:flex;align-items:center;gap:8px;margin:0 0 10px}
 .chatHead b{font-size:19px;flex:1;min-width:0}
 .chatHead span{font-size:12px;color:var(--mut);text-align:right;white-space:nowrap}
+.chatPresence{font-size:12px;color:var(--a);margin:-6px 0 8px;min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xbtn{width:34px;height:34px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.08);display:grid;place-items:center;cursor:pointer;flex:none}
 .xbtn:active{transform:scale(.92)}
 .xbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
@@ -534,14 +535,14 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=13;
+const APP_CODE=14;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
 const SCHED_KEY='YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=';
 const SCHED_TOPIC='dnevnikSchedHsPJjwoQ5_zP';
 
-const chat={key:null,topic:'',ptopic:'',nick:ls.get('chat_nick',''),msgs:[],pres:{},since:ls.get('chat_since',''),psince:ls.get('pres_since',''),out:[],timer:0,state:'',open:false,unread:0};
+const chat={key:null,topic:'',ptopic:'',nick:ls.get('chat_nick',''),msgs:[],pres:{},typing:{},since:ls.get('chat_since',''),psince:ls.get('pres_since',''),out:[],timer:0,presTimer:0,state:'',open:false,unread:0};
 try{chat.msgs=JSON.parse(ls.get('chat_msgs','[]'))||[]}catch(e){chat.msgs=[]}
 try{chat.out=JSON.parse(ls.get('chat_out','[]'))||[]}catch(e){chat.out=[]}
 try{chat.pres=JSON.parse(ls.get('chat_pres','{}'))||{}}catch(e){chat.pres={}}
@@ -639,6 +640,10 @@ async function applyChatObject(m){
     if(!chat.msgs.length)return false;
     chat.msgs=[];return true;
   }
+  if(m.op==='typing'){
+    if(m.d&&m.d!==DEV)chat.typing[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now()};
+    return false;
+  }
   if(m.op==='del'){
     const i=chat.msgs.findIndex(x=>x.u===m.u);
     if(i>=0){chat.msgs.splice(i,1);return true}
@@ -677,6 +682,7 @@ async function ingestEvents(events){
     else if(res===true)changed=true;
   }
   if(changed){chatSave();renderChatMessages(true)}
+  if(chat.open)paintPresence();
   if(fresh.length){
     const last=fresh[fresh.length-1];
     if(!chat.open){
@@ -782,9 +788,49 @@ async function chatPing(force){
 function startChatTimer(){
   stopChatTimer();
   chat.timer=setInterval(()=>{if(!chatWS)chatPoll()},120000);
+  chat.presTimer=setInterval(()=>{
+    paintPresence();
+    if(Date.now()-(startChatTimer.lastPoll||0)>170000){startChatTimer.lastPoll=Date.now();presPoll()}
+  },4000);
 }
-function stopChatTimer(){if(chat.timer){clearInterval(chat.timer);chat.timer=0}}
+function stopChatTimer(){
+  if(chat.timer){clearInterval(chat.timer);chat.timer=0}
+  if(chat.presTimer){clearInterval(chat.presTimer);chat.presTimer=0}
+}
 function paintChatState(){const el=$('#chatState');if(el)el.textContent=chat.state}
+function paintPresence(){
+  const el=$('#chatPresence');
+  if(!el)return;
+  const now=Date.now();
+  const typers=[];
+  Object.keys(chat.typing).forEach(d=>{
+    const t=chat.typing[d];
+    if(!t||now-(t.ts||0)>7000){delete chat.typing[d];return}
+    if(d===DEV)return;
+    const n=t.n||'Ученик';
+    if(typers.indexOf(n)<0)typers.push(n);
+  });
+  const online=[];const seen={};
+  Object.keys(chat.pres).forEach(d=>{
+    const p=chat.pres[d];
+    if(!p||now-(p.ts||0)>720000)return;
+    if(d===DEV)return;
+    const n=p.n||'Ученик';
+    if(seen[n])return;
+    seen[n]=1;online.push(n);
+  });
+  let txt='';
+  if(typers.length)txt=typers.slice(0,3).join(', ')+(typers.length===1?' печатает…':' печатают…');
+  else if(online.length)txt='В сети: '+online.slice(0,5).join(', ')+(online.length>5?' и ещё '+(online.length-5):'');
+  el.textContent=txt;
+}
+async function sendTyping(){
+  if(!chat.key||!chat.nick)return;
+  const now=Date.now();
+  if(now-(sendTyping.last||0)<3000)return;
+  sendTyping.last=now;
+  try{await chatPost(await chatEnc({op:'typing',d:DEV,n:chat.nick,ts:now}))}catch(e){}
+}
 function paintUnread(){$('#chatBtn').classList.toggle('dot',chat.unread>0)}
 
 function renderChatMessages(scroll){
@@ -917,7 +963,7 @@ function chatSheet(){
   chat.open=true;chat.unread=0;paintUnread();
   openSheet(
     '<div class="chatHead"><b>Чат класса</b><span id="chatState">'+esc(chat.state||'…')+'</span>'+sheetClose('chat')+'</div>'+
-    '<div class="chatList" id="chatList"></div>'+
+    '<div class="chatPresence" id="chatPresence"></div>'+    '<div class="chatList" id="chatList"></div>'+
     '<div class="attachPreview" id="attachPreview" style="display:none"></div>'+
     '<div class="chatBar"><button class="attBtn" id="chatAttach" aria-label="Фото или видео"><svg viewBox="0 0 24 24"><path d="M8.5 13.5l6.2-6.2a3.2 3.2 0 014.5 4.5l-7.6 7.6a5.2 5.2 0 01-7.4-7.4l6.7-6.7"/></svg></button>'+
     '<input class="in" id="chatInput" placeholder="Сообщение…" maxlength="500" autocomplete="off">'+
@@ -931,6 +977,8 @@ function chatSheet(){
   wsStart();
   setTimeout(()=>{if(!chatWS)chatPoll()},6000);
   chatPing(true);
+  paintPresence();
+  presPoll();
   $('#chatSend').onclick=chatSend;
   $('#chatAttach').onclick=()=>{const f=$('#chatFile');if(f)f.click()};
   $('#chatFile').onchange=e=>{
@@ -938,7 +986,14 @@ function chatSheet(){
     e.target.value='';
     if(files.length)showAttachPreview(files);
   };
-  $('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chatSend()}});
+  $('#chatInput').addEventListener('input',sendTyping);
+  $('#chatInput').addEventListener('keydown',e=>{
+    if(e.key!=='Enter')return;
+    e.preventDefault();
+    const s=$('#ap_send');
+    if(pendingAttach.length&&s){s.click();return}
+    chatSend();
+  });
   const list=$('#chatList');
   list.addEventListener('click',e=>{
     if(lpFired){lpFired=false;return}
