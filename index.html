@@ -209,13 +209,15 @@ async function sync(manual){
     if(ok.length){
       let best=null,bestTs=0;
       ok.forEach(r=>{const t=tsOf(r.data);if(t>=bestTs){best=r.data;bestTs=t}});
+      const changed=JSON.stringify(best)!==JSON.stringify(S.data);
       S.data=best;
       if(!S.data.days)S.data.days=[];
       ls.set('diary_data',JSON.stringify(best));
-      lastUpdated=bestTs||Date.now();
+      lastUpdated=bestTs||lastUpdated||Date.now();
       ls.set('diary_updated',String(lastUpdated));
       S.offline=false;S.lastError=false;
-      render();updateBanner();
+      if(changed)render();
+      updateBanner();
       if(manual)toast('Данные обновлены · '+fmtWhen(lastUpdated));
     }else if(res.every(r=>r.kind==='net')){
       S.offline=true;S.lastError=false;updateBanner();
