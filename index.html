@@ -29,6 +29,7 @@ header{padding:calc(env(safe-area-inset-top) + 14px) 14px 10px;display:flex;alig
 .ib{width:42px;height:42px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.07);display:grid;place-items:center;cursor:pointer;transition:transform .12s,background .2s;flex-shrink:0}
 .ib:active{transform:scale(.9)}
 .ib:hover{background:rgba(255,255,255,.13)}
+.ib.dot{position:relative}.ib.dot::after{content:"";position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
 .ib svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .week{display:flex;align-items:center;gap:3px;padding:9px 8px;background:rgba(15,22,44,.92);border-bottom:1px solid var(--line);flex-shrink:0}
 .week .ib{width:34px;height:46px;border-radius:11px}
@@ -80,9 +81,31 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translate(-50%,30px);opacity:0;z-index:30;padding:12px 20px;border-radius:16px;background:rgba(20,30,70,.96);border:1px solid var(--line);transition:all .3s cubic-bezier(.2,.8,.2,1);pointer-events:none;max-width:88vw;text-align:center;font-size:14px}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .syncing svg{animation:spin .9s linear infinite}
-.chatHead{display:flex;align-items:baseline;gap:8px;margin:0 0 8px}
-.chatHead b{font-size:19px}
-.chatHead span{font-size:12px;color:var(--mut);margin-left:auto;text-align:right}
+.chatHead{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.chatHead b{font-size:19px;flex:1;min-width:0}
+.chatHead span{font-size:12px;color:var(--mut);text-align:right;white-space:nowrap}
+.xbtn{width:34px;height:34px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.08);display:grid;place-items:center;cursor:pointer;flex:none}
+.xbtn:active{transform:scale(.92)}
+.xbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.sw{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sw span{flex:1;font-size:14px}
+.tg{width:46px;height:28px;border-radius:14px;background:rgba(255,255,255,.16);position:relative;transition:background .18s;flex:none;cursor:pointer;border:0}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .18s}
+.tg.on{background:linear-gradient(135deg,var(--a),var(--b))}
+.tg.on::after{transform:translateX(18px)}
+.user{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.07);font-size:14px}
+.user i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);flex:none}
+.user i.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.user b{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user small{color:var(--mut);font-size:12px;flex:none}
+.dayBtn{width:100%;text-align:left;padding:11px 13px;margin-bottom:8px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:13px;color:var(--mut);cursor:pointer}
+.dayBtn b{display:block;font-size:15px;color:var(--ink);margin-bottom:2px}
+.lrow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.lrow .in{padding:9px 10px;font-size:13.5px}
+.lrow .del{width:38px;height:40px;border-radius:10px;border:1px solid rgba(255,120,120,.35);background:rgba(255,80,80,.14);color:#ffb3b3;flex:none;cursor:pointer;font-size:15px}
+.msg .b{cursor:pointer}
+.msg .b.edited::after{content:" изм.";font-size:10px;opacity:.65}
+.chatNote{margin-top:12px;font-size:12px;color:var(--mut)}
 .chatList{max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 6px;-webkit-overflow-scrolling:touch}
 .chatList::-webkit-scrollbar{width:0}
 .msg{display:flex;flex-direction:column;max-width:84%}
@@ -129,7 +152,7 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 <div class="toast" id="toast"></div>
 
 <!--SEED_START-->
-<script type="application/json" id="seed">{"updated":"2026-11-15T17:00:00+03:00","week":"2026-11-16","days":[{"date":"2026-11-16","off":false,"lessons":[{"subject":"ВД Разговоры о важном","time":"8:30-9:10","hw":"","noHw":true},{"subject":"Физкультура","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Физика","time":"10:20-11:00","hw":"Закончить оформление, повторить пп. 23"},{"subject":"Рус. язык","time":"11:20-12:00","hw":"Упр. 139, с. 62"},{"subject":"Алгебра","time":"12:20-13:00","hw":"№ 385, 386, 401 (а)"},{"subject":"Биология","time":"13:20-14:00","hw":"Карточка задания «Папортникообразные».docx"},{"subject":"ВиС","time":"14:10-14:50","hw":""},{"subject":"ВД Новгородика","time":"14:55-15:35","hw":"","noHw":true}]},{"date":"2026-11-17","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":"Составить кроссворд по п. 20-23 (не менее 15 слов), подготовиться к проверочной работе"},{"subject":"Литература","time":"10:20-11:00","hw":"Вопр. 2, 3, 4, 5, с. 194 (192), письменно"},{"subject":"География","time":"11:20-12:00","hw":"П. 15, вопросы"},{"subject":"Геометрия","time":"12:20-13:00","hw":"№ 163, 167, 169, 172"},{"subject":"Англ. язык","time":"13:20-14:00","hw":"с."},{"subject":"ЭК Формула питания","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-18","off":false,"lessons":[{"subject":"Физика","time":"8:30-9:10","hw":"Выполнить задания в тетради"},{"subject":"ИЗО","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Рус. язык","time":"10:20-11:00","hw":""},{"subject":"История","time":"11:20-12:00","hw":""},{"subject":"Музыка","time":"12:20-13:00","hw":"","noHw":true},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"ВД Спорт.клуб: Бадминтон","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-19","off":false,"lessons":[{"subject":"Геометрия","time":"8:30-9:10","hw":""},{"subject":"Англ. язык","time":"9:20-10:00","hw":"с."},{"subject":"Труд (технология)","time":"10:20-11:00","hw":"П. 3.2"},{"subject":"Труд (технология)","time":"11:20-12:00","hw":""},{"subject":"Литература","time":"12:20-13:00","hw":""},{"subject":"ЭК Занимат. русский","time":"13:20-14:00","hw":""},{"subject":"ВД Россия — мои горизонты","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-20","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":""},{"subject":"Физкультура","time":"10:20-11:00","hw":""},{"subject":"Информатика","time":"11:20-12:00","hw":""},{"subject":"География","time":"12:20-13:00","hw":"П. 16, вопросы"},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"Англ. язык","time":"14:10-14:50","hw":"с."}]},{"date":"2026-11-21","off":true,"lessons":[]},{"date":"2026-11-22","off":true,"lessons":[]}]}</script>
+<script type="application/json" id="seed">{"updated":"2026-11-15T21:20:00+03:00","week":"2026-11-16","days":[{"date":"2026-11-16","off":false,"lessons":[{"subject":"ВД Разговоры о важном","time":"8:30-9:10","hw":"","noHw":true},{"subject":"Физкультура","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Физика","time":"10:20-11:00","hw":"Закончить оформление, повторить пп. 23"},{"subject":"Рус. язык","time":"11:20-12:00","hw":"Упр. 139, с. 62"},{"subject":"Алгебра","time":"12:20-13:00","hw":"№ 385, 386, 401 (а)"},{"subject":"Биология","time":"13:20-14:00","hw":"Карточка задания «Папортникообразные».docx"},{"subject":"ВиС","time":"14:10-14:50","hw":""},{"subject":"ВД Новгородика","time":"14:55-15:35","hw":"","noHw":true}]},{"date":"2026-11-17","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":"Составить кроссворд по п. 20-23 (не менее 15 слов), подготовиться к проверочной работе"},{"subject":"Литература","time":"10:20-11:00","hw":"Вопр. 2, 3, 4, 5, с. 194 (192), письменно"},{"subject":"География","time":"11:20-12:00","hw":"П. 15, вопросы"},{"subject":"Геометрия","time":"12:20-13:00","hw":"№ 163, 167, 169, 172"},{"subject":"Англ. язык","time":"13:20-14:00","hw":"с."},{"subject":"ЭК Формула питания","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-18","off":false,"lessons":[{"subject":"Физика","time":"8:30-9:10","hw":"Выполнить задания в тетради"},{"subject":"ИЗО","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Рус. язык","time":"10:20-11:00","hw":""},{"subject":"История","time":"11:20-12:00","hw":""},{"subject":"Музыка","time":"12:20-13:00","hw":"","noHw":true},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"ВД Спорт.клуб: Бадминтон","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-19","off":false,"lessons":[{"subject":"Геометрия","time":"8:30-9:10","hw":""},{"subject":"Англ. язык","time":"9:20-10:00","hw":"с."},{"subject":"Труд (технология)","time":"10:20-11:00","hw":"П. 3.2"},{"subject":"Труд (технология)","time":"11:20-12:00","hw":""},{"subject":"Литература","time":"12:20-13:00","hw":""},{"subject":"ЭК Занимат. русский","time":"13:20-14:00","hw":""},{"subject":"ВД Россия — мои горизонты","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-20","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":""},{"subject":"Физкультура","time":"10:20-11:00","hw":""},{"subject":"Информатика","time":"11:20-12:00","hw":""},{"subject":"География","time":"12:20-13:00","hw":"П. 16, вопросы"},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"Англ. язык","time":"14:10-14:50","hw":"с."}]},{"date":"2026-11-21","off":true,"lessons":[]},{"date":"2026-11-22","off":true,"lessons":[]}],"template":[{"wd":1,"lessons":[{"subject":"ВД Разговоры о важном","time":"8:30-9:10","hw":"","noHw":true},{"subject":"Физкультура","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Физика","time":"10:20-11:00","hw":"Закончить оформление, повторить пп. 23"},{"subject":"Рус. язык","time":"11:20-12:00","hw":"Упр. 139, с. 62"},{"subject":"Алгебра","time":"12:20-13:00","hw":"№ 385, 386, 401 (а)"},{"subject":"Биология","time":"13:20-14:00","hw":"Карточка задания «Папортникообразные».docx"},{"subject":"ВиС","time":"14:10-14:50","hw":""},{"subject":"ВД Новгородика","time":"14:55-15:35","hw":"","noHw":true}]},{"wd":2,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":"Составить кроссворд по п. 20-23 (не менее 15 слов), подготовиться к проверочной работе"},{"subject":"Литература","time":"10:20-11:00","hw":"Вопр. 2, 3, 4, 5, с. 194 (192), письменно"},{"subject":"География","time":"11:20-12:00","hw":"П. 15, вопросы"},{"subject":"Геометрия","time":"12:20-13:00","hw":"№ 163, 167, 169, 172"},{"subject":"Англ. язык","time":"13:20-14:00","hw":"с."},{"subject":"ЭК Формула питания","time":"14:10-14:50","hw":"","noHw":true}]},{"wd":3,"lessons":[{"subject":"Физика","time":"8:30-9:10","hw":"Выполнить задания в тетради"},{"subject":"ИЗО","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Рус. язык","time":"10:20-11:00","hw":""},{"subject":"История","time":"11:20-12:00","hw":""},{"subject":"Музыка","time":"12:20-13:00","hw":"","noHw":true},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"ВД Спорт.клуб: Бадминтон","time":"14:10-14:50","hw":"","noHw":true}]},{"wd":4,"lessons":[{"subject":"Геометрия","time":"8:30-9:10","hw":""},{"subject":"Англ. язык","time":"9:20-10:00","hw":"с."},{"subject":"Труд (технология)","time":"10:20-11:00","hw":"П. 3.2"},{"subject":"Труд (технология)","time":"11:20-12:00","hw":""},{"subject":"Литература","time":"12:20-13:00","hw":""},{"subject":"ЭК Занимат. русский","time":"13:20-14:00","hw":""},{"subject":"ВД Россия — мои горизонты","time":"14:10-14:50","hw":"","noHw":true}]},{"wd":5,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":""},{"subject":"Физкультура","time":"10:20-11:00","hw":""},{"subject":"Информатика","time":"11:20-12:00","hw":""},{"subject":"География","time":"12:20-13:00","hw":"П. 16, вопросы"},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"Англ. язык","time":"14:10-14:50","hw":"с."}]}]}</script>
 <!--SEED_END-->
 
 <script>
@@ -153,6 +176,8 @@ const DEFAULT_SOURCES=[
 ];
 
 const S={data:{days:[]},sel:TODAY,dir:'',offline:!navigator.onLine,lastError:false,syncing:false};
+let OV={};
+try{OV=JSON.parse(ls.get('sched_ov','{}'))||{}}catch(e){OV={}}
 let lastUpdated=0;
 
 /* ---------- расписание ---------- */
@@ -216,7 +241,10 @@ async function sync(manual){
       lastUpdated=bestTs||lastUpdated||Date.now();
       ls.set('diary_updated',String(lastUpdated));
       S.offline=false;S.lastError=false;
-      if(changed)render();
+      if(changed){
+        render();
+        if(NOTIF.hw)pushNote('Домашка обновилась','Данные от '+fmtWhen(lastUpdated),'hw');
+      }
       updateBanner();
       if(manual)toast('Данные обновлены · '+fmtWhen(lastUpdated));
     }else if(res.every(r=>r.kind==='net')){
@@ -230,8 +258,18 @@ async function sync(manual){
     S.syncing=false;
     $('#refreshBtn').classList.remove('syncing');
   }
+  if(navigator.onLine)pollSchedUpdates();
 }
-function dayOf(d){return S.data.days.find(x=>x.date===d)}
+function dayOf(date){
+  if(OV[date])return OV[date];
+  const ex=S.data.days.find(x=>x.date===date);
+  if(ex)return ex;
+  const wd=parse(date).getDay();
+  if(wd===0||wd===6)return {date:date,off:true,lessons:[]};
+  const t=(S.data.template||[]).find(t=>t.wd===wd);
+  if(t)return {date:date,off:false,lessons:t.lessons};
+  return null;
+}
 
 let dir='';
 function render(){
@@ -245,7 +283,7 @@ function render(){
     return '<button class="tab'+(s===S.sel?' sel':'')+(s===TODAY?' td':'')+(dd&&dd.off?' off':'')+'" data-d="'+s+'"><span>'+WD[x.getDay()]+'</span><b>'+x.getDate()+'</b></button>'}).join('');
   const L=$('#list');L.className=dir;dir='';
   const day=dayOf(S.sel);let h='';
-  if(!S.data.days.length){
+  if(!S.data.days.length&&!(S.data.template||[]).length){
     h='<div class="empty"><svg viewBox="0 0 24 24">'+ICON.leaf+'</svg>Пока нет данных.<br>Подключитесь к интернету и нажмите «Обновить»</div>';
   }else if(!day){
     h='<div class="empty"><svg viewBox="0 0 24 24">'+ICON.leaf+'</svg>Нет данных за этот день</div>';
@@ -283,6 +321,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();
 function openSheet(h){$('#sheet').innerHTML='<div class="grip"></div>'+h;$('#sheet').classList.add('open')}
 function closeSheet(){
   $('#sheet').classList.remove('open');
+  chat.open=false;
   stopChatTimer();
 }
 window.onBack=()=>{if($('#sheet').classList.contains('open')){closeSheet();return true}return false};
@@ -293,19 +332,32 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');cl
 
 /* ---------- чат ---------- */
 /* Сообщения шифруются на устройстве (AES-GCM), сервер видит только шифротекст.
-   Тема в сервисе и ключ выводятся из кода класса, поэтому без кода чат не открыть. */
+   Тема и ключ выводятся из кода класса, поэтому без кода чат не открыть. */
 const CHAT_HOST='https://ntfy.sh';
 const CHAT_SALT_V='4hwf+0CdaqeqoMKDSFeyLA==';
 const CHAT_SALT_K='1Dl+G/fnUz7kNueMLfIvfg==';
 const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
-const CHAT_TOPIC_SALT='dnevnik-chat-2026c';const CHAT_ITER=120000;
-const CHAT_VER='1';
+const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
+const CHAT_ITER=120000;
+const CHAT_VER='2';
+const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
+const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
+const SCHED_KEY='YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=';
+const SCHED_TOPIC='dnevnikSchedHsPJjwoQ5_zP';
 
-const chat={key:null,topic:'',nick:ls.get('chat_nick',''),msgs:[],since:ls.get('chat_since',''),out:[],timer:0,state:''};
+const chat={key:null,topic:'',ptopic:'',nick:ls.get('chat_nick',''),msgs:[],pres:{},since:ls.get('chat_since',''),psince:ls.get('pres_since',''),out:[],timer:0,state:'',open:false,unread:0};
 try{chat.msgs=JSON.parse(ls.get('chat_msgs','[]'))||[]}catch(e){chat.msgs=[]}
 try{chat.out=JSON.parse(ls.get('chat_out','[]'))||[]}catch(e){chat.out=[]}
+try{chat.pres=JSON.parse(ls.get('chat_pres','{}'))||{}}catch(e){chat.pres={}}
 let DEV=ls.get('dev_id','');
 if(!DEV){DEV=uuid();ls.set('dev_id',DEV)}
+let ADMIN=ls.get('adm','')==='1';
+let schedOut=[];
+try{schedOut=JSON.parse(ls.get('sched_out','[]'))||[]}catch(e){schedOut=[]}
+let schedSince=ls.get('sched_since','');
+
+const NOTIF={hw:ls.get('notif_hw','1')==='1',chat:ls.get('notif_chat','1')==='1'};
+const NATIVE=(typeof window.DnevnikNative!=='undefined')?window.DnevnikNative:null;
 
 function uuid(){
   if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
@@ -320,6 +372,27 @@ async function deriveBits(code,saltB64){
   const base=await crypto.subtle.importKey('raw',te.encode(code),'PBKDF2',false,['deriveBits']);
   return await crypto.subtle.deriveBits({name:'PBKDF2',salt:fromB64(saltB64),iterations:CHAT_ITER,hash:'SHA-256'},base,256);
 }
+async function encWith(key,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify(obj)));
+  return b64(iv)+'.'+b64(ct);
+}
+async function decWith(key,str){
+  try{
+    const[ivS,ctS]=String(str).split('.');
+    if(!ivS||!ctS)return null;
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivS)},key,fromB64(ctS));
+    return JSON.parse(td.decode(pt));
+  }catch(e){return null}
+}
+let schedKeyObj=null;
+async function getSchedKey(){
+  if(!schedKeyObj)schedKeyObj=await crypto.subtle.importKey('raw',fromB64(SCHED_KEY),{name:'AES-GCM'},false,['encrypt','decrypt']);
+  return schedKeyObj;
+}
+async function schedEnc(obj){return encWith(await getSchedKey(),obj)}
+async function schedDec(str){return decWith(await getSchedKey(),str)}
+
 async function chatUnlock(code){
   const check=b64(await deriveBits(code,CHAT_SALT_V));
   if(check!==CHAT_CHECK)return false;
@@ -327,7 +400,8 @@ async function chatUnlock(code){
   chat.key=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']);
   const th=await crypto.subtle.digest('SHA-256',te.encode(code+CHAT_TOPIC_SALT));
   chat.topic='dnevnik'+b64url(th).slice(0,24);
-  ls.set('chat_k',b64(raw));ls.set('chat_topic',chat.topic);ls.set('chat_ver',CHAT_VER);
+  chat.ptopic='dnevnikP'+b64url(th).slice(0,23);
+  ls.set('chat_k',b64(raw));ls.set('chat_topic',chat.topic);ls.set('chat_ptopic',chat.ptopic);ls.set('chat_ver',CHAT_VER);
   return true;
 }
 async function chatRestore(){
@@ -335,75 +409,175 @@ async function chatRestore(){
   if(!k||!t||ls.get('chat_ver','')!==CHAT_VER)return false;
   try{
     chat.key=await crypto.subtle.importKey('raw',fromB64(k),{name:'AES-GCM'},false,['encrypt','decrypt']);
-    chat.topic=t;return true;
+    chat.topic=t;
+    chat.ptopic=ls.get('chat_ptopic','')||('dnevnikP'+t.slice(8));
+    return true;
   }catch(e){return false}
 }
-async function chatEnc(obj){
-  const iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},chat.key,te.encode(JSON.stringify(obj)));
-  return b64(iv)+'.'+b64(ct);
-}
-async function chatDec(str){
-  try{
-    const[ivS,ctS]=str.split('.');
-    if(!ivS||!ctS)return null;
-    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivS)},chat.key,fromB64(ctS));
-    return JSON.parse(td.decode(pt));
-  }catch(e){return null}
-}
+async function chatEnc(obj){return encWith(chat.key,obj)}
+async function chatDec(str){return decWith(chat.key,str)}
+
 function chatSave(){
-  chat.msgs=chat.msgs.sort((a,b)=>a.ts-b.ts).slice(-200);
+  chat.msgs=chat.msgs.sort((a,b)=>a.ts-b.ts).slice(-250);
   ls.set('chat_msgs',JSON.stringify(chat.msgs));
   ls.set('chat_since',chat.since||'');
+  ls.set('pres_since',chat.psince||'');
   ls.set('chat_out',JSON.stringify(chat.out));
+  ls.set('chat_pres',JSON.stringify(chat.pres));
 }
 
-async function chatPost(payload){
-  const r=await fetch(CHAT_HOST+'/'+chat.topic,{method:'POST',body:payload});
+async function postTo(topic,payload){
+  const r=await fetch(CHAT_HOST+'/'+topic,{method:'POST',body:payload});
   if(!r.ok)throw new Error('http '+r.status);
-  try{const j=await r.json();if(j&&j.id)chat.since=j.id}catch(e){}
+  return true;
+}
+async function chatPost(payload){return postTo(chat.topic,payload)}
+
+async function applyChatObject(m){
+  if(!m)return false;
+  if(m.op==='hi'){
+    if(m.d)chat.pres[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now()};
+    return false;
+  }
+  if(m.op==='del'){
+    const i=chat.msgs.findIndex(x=>x.u===m.u);
+    if(i>=0){chat.msgs.splice(i,1);return true}
+    return false;
+  }
+  if(m.op==='edit'){
+    const msg=chat.msgs.find(x=>x.u===m.u);
+    if(msg){msg.t=m.t;msg.edited=true;return true}
+    return false;
+  }
+  if(m.u){
+    if(!chat.msgs.some(x=>x.u===m.u)){
+      chat.msgs.push({u:m.u,d:m.d,n:m.n||'Ученик',t:m.t,ts:m.ts||Date.now()});
+      return 'new';
+    }
+  }
+  return false;
 }
 
-async function chatPoll(force){
+async function ingestEvents(events){
+  let changed=false;const fresh=[];
+  for(const ev of events){
+    if(!ev||!ev.message)continue;
+    if(ev.id)chat.since=ev.id;
+    const m=await chatDec(ev.message);
+    const res=await applyChatObject(m);
+    if(res==='new'){changed=true;fresh.push(m)}
+    else if(res===true)changed=true;
+  }
+  if(changed){chatSave();renderChatMessages(true)}
+  if(fresh.length){
+    const last=fresh[fresh.length-1];
+    if(!chat.open){
+      chat.unread+=fresh.length;
+      paintUnread();
+      if(NOTIF.chat)pushNote('Чат класса',(last.n||'Ученик')+': '+String(last.t||'').slice(0,120),'chat');
+    }
+  }
+  return changed;
+}
+
+async function chatPoll(){
   if(!chat.key)return;
   if(!navigator.onLine){chat.state='офлайн · последние сохранённые сообщения';paintChatState();return}
   try{
     const q=chat.since?('&since='+encodeURIComponent(chat.since)):'&since=all';
     const r=await fetch(CHAT_HOST+'/'+chat.topic+'/json?poll=1'+q,{cache:'no-store'});
-    if(!r.ok)throw new Error('http');
+    if(r.status===429)throw new Error('429');
+    if(!r.ok)throw new Error('http '+r.status);
     const lines=(await r.text()).split('\n').filter(Boolean);
-    let added=0;
-    for(const line of lines){
-      let ev;try{ev=JSON.parse(line)}catch(e){continue}
-      if(ev.event!=='message'||!ev.message)continue;
-      if(ev.id)chat.since=ev.id;
-      const m=await chatDec(ev.message);
-      if(m&&m.u&&!chat.msgs.some(x=>x.u===m.u)){chat.msgs.push({u:m.u,d:m.d,n:m.n||'Ученик',t:m.t,ts:m.ts||Date.now()});added++}
-    }
+    const events=[];
+    for(const line of lines){try{events.push(JSON.parse(line))}catch(e){}}
+    await ingestEvents(events.filter(e=>e.event==='message'));
     if(chat.out.length){
       const left=[];
-      for(const p of chat.out){
-        try{await chatPost(p)}catch(e){left.push(p)}
-      }
+      for(const p of chat.out){try{await chatPost(p)}catch(e){left.push(p)}}
       chat.out=left;
     }
-    if(added)chatSave();
     chat.state='онлайн · '+fmtTime(Date.now());
     paintChatState();
-    if(added)renderChatMessages(true);
+    await presPoll();
   }catch(e){
     console.warn('chat poll',e);
-    chat.state=navigator.onLine?'сервер чата недоступен':'офлайн · последние сохранённые сообщения';
+    chat.state=String(e.message)==='429'
+      ?'сервер ограничил запросы · подождём'
+      :(navigator.onLine?'сервер чата недоступен':'офлайн · последние сохранённые сообщения');
     paintChatState();
   }
 }
+
+/* живая подписка: одно соединение вместо постоянных опросов (у сервера лимит запросов) */
+/* живая подписка: одно соединение вместо постоянных опросов (у сервера лимит запросов) */
+let chatWS=null,wsOn=false;
+const WS_RETRY=6000;
+
+function wsStart(){
+  if(!chat.key||wsOn)return;
+  wsOn=true;
+  connectChatWS();
+}
+function connectChatWS(){
+  if(!chat.key)return;
+  try{
+    if(chatWS&&chatWS.readyState<=1)return;
+    chatWS=new WebSocket('wss://ntfy.sh/'+chat.topic+'/ws'+(chat.since?('?since='+encodeURIComponent(chat.since)):'?since=all'));
+    chatWS.onopen=()=>{chat.state='онлайн · '+fmtTime(Date.now());paintChatState()};
+    chatWS.onmessage=async ev=>{
+      let m;try{m=JSON.parse(ev.data)}catch(e){return}
+      if(m.event!=='message')return;
+      await ingestEvents([m]);
+    };
+    chatWS.onclose=()=>{chatWS=null;if(wsOn)setTimeout(connectChatWS,WS_RETRY)};
+    chatWS.onerror=()=>{try{chatWS&&chatWS.close()}catch(e){}};
+  }catch(e){}
+}
+function wsStop(){
+  wsOn=false;
+  try{chatWS&&chatWS.close()}catch(e){}
+  chatWS=null;
+}
+
+let presBusy=false;
+async function presPoll(){
+  if(!chat.key||!chat.ptopic||presBusy)return;
+  presBusy=true;
+  try{
+    const q=chat.psince?('&since='+encodeURIComponent(chat.psince)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+chat.ptopic+'/json?poll=1'+q,{cache:'no-store'});
+    if(r.ok){
+      const lines=(await r.text()).split('\n').filter(Boolean);
+      for(const line of lines){
+        let ev;try{ev=JSON.parse(line)}catch(e){continue}
+        if(ev.event!=='message'||!ev.message)continue;
+        if(ev.id)chat.psince=ev.id;
+        const m=await chatDec(ev.message);
+        if(m&&m.op==='hi'&&m.d)chat.pres[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now()};
+      }
+      chatSave();
+      if($('#usersBox'))renderUsers();
+    }
+  }catch(e){}finally{presBusy=false}
+}
+
+let lastPing=0;
+async function chatPing(force){
+  if(!chat.key||!navigator.onLine)return;
+  if(Date.now()-lastPing<45000)return;
+  if(!force&&Date.now()-lastPing<600000)return;
+  lastPing=Date.now();
+  try{await postTo(chat.ptopic,await chatEnc({op:'hi',d:DEV,n:chat.nick||'Ученик',ts:Date.now()}))}catch(e){}
+}
+
 function startChatTimer(){
   stopChatTimer();
-  chat.timer=setInterval(()=>{chatPoll()},8000);
+  chat.timer=setInterval(()=>{if(!chatWS)chatPoll()},120000);
 }
 function stopChatTimer(){if(chat.timer){clearInterval(chat.timer);chat.timer=0}}
-
 function paintChatState(){const el=$('#chatState');if(el)el.textContent=chat.state}
+function paintUnread(){$('#chatBtn').classList.toggle('dot',chat.unread>0)}
 
 function renderChatMessages(scroll){
   const box=$('#chatList');
@@ -414,25 +588,58 @@ function renderChatMessages(scroll){
   }
   box.innerHTML=chat.msgs.map(m=>{
     const me=m.d===DEV;
-    return '<div class="msg'+(me?' me':'')+'"><div class="b">'+esc(m.t)+'</div><div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
+    return '<div class="msg'+(me?' me':'')+'" data-u="'+esc(m.u)+'"><div class="b'+(m.edited?' edited':'')+'">'+esc(m.t)+'</div><div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
   }).join('');
   if(scroll)box.scrollTop=box.scrollHeight;
 }
 
+function sheetClose(id){
+  return '<button class="xbtn" data-close="'+id+'"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+}
+function bindClose(){
+  document.querySelectorAll('#sheet [data-close]').forEach(b=>{b.onclick=closeSheet});
+}
+
 function chatSheet(){
+  chat.open=true;chat.unread=0;paintUnread();
   openSheet(
-    '<div class="chatHead"><b>Чат класса</b><span id="chatState">'+esc(chat.state||'…')+'</span></div>'+
+    '<div class="chatHead"><b>Чат класса</b><span id="chatState">'+esc(chat.state||'…')+'</span>'+sheetClose('chat')+'</div>'+
     '<div class="chatList" id="chatList"></div>'+
     '<div class="chatBar"><input class="in" id="chatInput" placeholder="Сообщение…" maxlength="500" autocomplete="off">'+
-    '<button class="btn" id="chatSend" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 20.5L21.5 12 3 3.5v6.3l12 2.2-12 2.2z"/></svg></button></div>'+
-    '<div class="chatNote">Сообщения шифруются на телефоне. Без интернета видно то, что уже загрузилось, а новые отправятся, когда сеть вернётся.</div>');
+    '<button class="btn" id="chatSend" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 20.5L21.5 12 3 3.5v6.3l12 2.2-12 2.2z"/></svg></button></div>');
+  bindClose();
   renderChatMessages(true);
   startChatTimer();
-  chatPoll(true);
+  wsStart();
+  setTimeout(()=>{if(!chatWS)chatPoll()},6000);
+  chatPing(true);
   $('#chatSend').onclick=chatSend;
   $('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chatSend()}});
+  $('#chatList').onclick=e=>{
+    const b=e.target.closest('.msg');
+    if(!b)return;
+    msgActions(b.dataset.u);
+  };
   setTimeout(()=>{const i=$('#chatInput');if(i)i.focus()},250);
 }
+
+async function sendChatObject(m){
+  const payload=await chatEnc(m);
+  try{
+    await chatPost(payload);
+    chat.state='онлайн · '+fmtTime(Date.now());
+    paintChatState();
+    return true;
+  }catch(e){
+    console.warn('chat post',e);
+    chat.out.push(payload);
+    chatSave();
+    chat.state='нет сети · отправится позже';
+    paintChatState();
+    return false;
+  }
+}
+
 async function chatSend(){
   const inp=$('#chatInput');
   if(!inp)return;
@@ -443,26 +650,61 @@ async function chatSend(){
   chat.msgs.push(m);
   chatSave();
   renderChatMessages(true);
-  const payload=await chatEnc(m);
-  try{
-    await chatPost(payload);
-    chat.state='онлайн · '+fmtTime(Date.now());
-  }catch(e){
-    console.warn('chat post',e);
-    chat.out.push(payload);
+  await sendChatObject(m);
+}
+
+function msgActions(u){
+  const m=chat.msgs.find(x=>x.u===u);
+  if(!m)return;
+  const mine=m.d===DEV;
+  if(!mine&&!ADMIN)return;
+  openSheet(
+    '<div class="chatHead"><b>'+esc(mine?'Ваше сообщение':(m.n||'Сообщение'))+'</b>'+sheetClose('msg')+'</div>'+
+    '<div class="chatNote" style="margin:0 0 14px">'+esc(String(m.t||'').slice(0,300))+'</div>'+
+    '<div class="bar"><button class="btn g" id="m_edit">Изменить</button><button class="btn g" id="m_del" style="color:#ffb3b3">Удалить</button></div>'+
+    '<div class="bar"><button class="btn g" id="m_close">Закрыть</button></div>');
+  bindClose();
+  $('#m_close').onclick=()=>chatSheet();
+  $('#m_edit').onclick=()=>chatEditSheet(u);
+  $('#m_del').onclick=()=>chatDelete(u);
+}
+
+function chatEditSheet(u){
+  const m=chat.msgs.find(x=>x.u===u);
+  if(!m)return;
+  openSheet(
+    '<div class="chatHead"><b>Изменить сообщение</b>'+sheetClose('edit')+'</div>'+
+    '<div class="fld"><input class="in" id="e_text" maxlength="500" value="'+esc(m.t)+'"></div>'+
+    '<div class="bar"><button class="btn" id="e_save">Сохранить</button><button class="btn g" id="e_cancel">Отмена</button></div>');
+  bindClose();
+  $('#e_cancel').onclick=()=>chatSheet();
+  $('#e_save').onclick=async()=>{
+    const t=$('#e_text').value.trim();
+    if(!t){toast('Пустое сообщение');return}
+    m.t=t.slice(0,500);m.edited=true;
     chatSave();
-    chat.state='нет сети · сообщение отправится позже';
-  }
-  paintChatState();
+    chatSheet();
+    await sendChatObject({op:'edit',u:u,t:m.t,ts:Date.now()});
+  };
+}
+
+async function chatDelete(u){
+  const i=chat.msgs.findIndex(x=>x.u===u);
+  if(i<0)return;
+  chat.msgs.splice(i,1);
+  chatSave();
+  chatSheet();
+  await sendChatObject({op:'del',u:u,ts:Date.now()});
 }
 
 function unlockSheet(error){
   openSheet(
-    '<div class="chatHead"><b>Чат класса</b></div>'+
+    '<div class="chatHead"><b>Чат класса</b>'+sheetClose('unlock')+'</div>'+
     '<div class="fld"><label>Код класса</label><input class="in" id="u_code" placeholder="введите код" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'+
     (error?'<div class="chatNote" style="color:var(--bad)">Неверный код</div>':'')+
     '<div class="bar"><button class="btn" id="u_go">Войти</button><button class="btn g" id="u_cancel">Отмена</button></div>'+
     '<div class="chatNote">Код выдаёт староста. Без кода чат не открывается, а на сервере сообщения лежат только в зашифрованном виде.</div>');
+  bindClose();
   const go=async()=>{
     const code=$('#u_code').value.trim();
     if(!code){toast('Введите код');return}
@@ -480,14 +722,15 @@ function unlockSheet(error){
 }
 function nickSheet(){
   openSheet(
-    '<div class="chatHead"><b>Как вас зовут?</b></div>'+
+    '<div class="chatHead"><b>Как вас зовут?</b>'+sheetClose('nick')+'</div>'+
     '<div class="fld"><label>Имя в чате</label><input class="in" id="n_nick" maxlength="24" placeholder="Например, Артём" value="'+esc(chat.nick||'')+'"></div>'+
-    '<div class="bar"><button class="btn" id="n_go">Сохранить</button></div>'+
-    '<div class="chatNote">Имя увидят одноклассники в чате.</div>');
+    '<div class="bar"><button class="btn" id="n_go">Сохранить</button></div>');
+  bindClose();
   $('#n_go').onclick=()=>{
     const n=$('#n_nick').value.trim().slice(0,24);
     if(!n){toast('Введите имя');return}
     chat.nick=n;ls.set('chat_nick',n);
+    chatPing(true);
     chatSheet();
   };
 }
@@ -497,7 +740,224 @@ async function openChat(){
   if(!chat.nick){nickSheet();return}
   chatSheet();
 }
+
+/* ---------- уведомления ---------- */
+
+async function askNotif(){
+  if(NATIVE){
+    try{
+      if(!NATIVE.notificationsAllowed())NATIVE.requestPermission();
+      return true;
+    }catch(e){return false}
+  }
+  if(!('Notification' in window))return false;
+  if(Notification.permission==='granted')return true;
+  if(Notification.permission==='denied')return false;
+  try{return (await Notification.requestPermission())==='granted'}catch(e){return false}
+}
+function pushNote(title,body,tag){
+  if(NATIVE){
+    try{NATIVE.notify(title,body)}catch(e){}
+    return;
+  }
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  try{new Notification(title,{body:body,icon:'icon-192.png',tag:tag})}catch(e){}
+}
+function notifSheet(){
+  openSheet(
+    '<div class="chatHead"><b>Уведомления</b>'+sheetClose('notif')+'</div>'+
+    '<div class="sw"><span>Домашнее задание</span><button class="tg'+(NOTIF.hw?' on':'')+'" id="n_hw"></button></div>'+
+    '<div class="sw"><span>Сообщения в чате</span><button class="tg'+(NOTIF.chat?' on':'')+'" id="n_chat"></button></div>'+
+    '<div class="chatNote">Уведомления приходят, пока приложение запущено (в том числе свёрнуто), и при следующем открытии.</div>');
+  bindClose();
+  $('#n_hw').onclick=async()=>{
+    NOTIF.hw=!NOTIF.hw;ls.set('notif_hw',NOTIF.hw?'1':'0');
+    if(NOTIF.hw&&!await askNotif()){NOTIF.hw=false;ls.set('notif_hw','0');toast('Разрешите уведомления в настройках')}
+    notifSheet();
+  };
+  $('#n_chat').onclick=async()=>{
+    NOTIF.chat=!NOTIF.chat;ls.set('notif_chat',NOTIF.chat?'1':'0');
+    if(NOTIF.chat&&!await askNotif()){NOTIF.chat=false;ls.set('notif_chat','0');toast('Разрешите уведомления в настройках')}
+    notifSheet();
+  };
+}
+
+/* ---------- админ-панель ---------- */
+
+async function adminUnlock(code){
+  const chk=b64(await deriveBits(code,ADMIN_SALT_V));
+  if(chk!==ADMIN_CHECK)return false;
+  ADMIN=true;ls.set('adm','1');
+  return true;
+}
+function adminEntry(){ADMIN?adminSheet():adminLoginSheet(false)}
+
+function adminLoginSheet(err){
+  openSheet(
+    '<div class="chatHead"><b>Админ-панель</b>'+sheetClose('adm')+'</div>'+
+    '<div class="fld"><label>Код администратора</label><input class="in" id="a_code" type="password" autocomplete="off" placeholder="код"></div>'+
+    (err?'<div class="chatNote" style="color:var(--bad)">Неверный код</div>':'')+
+    '<div class="bar"><button class="btn" id="a_go">Войти</button><button class="btn g" id="a_cancel">Отмена</button></div>');
+  bindClose();
+  const go=async()=>{
+    const code=$('#a_code').value.trim();
+    if(!code)return;
+    if(await adminUnlock(code))adminSheet();
+    else adminLoginSheet(true);
+  };
+  $('#a_go').onclick=go;
+  $('#a_cancel').onclick=closeSheet;
+  $('#a_code').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
+  setTimeout(()=>$('#a_code').focus(),250);
+}
+
+function adminSheet(){
+  openSheet(
+    '<div class="chatHead"><b>Админ-панель</b>'+sheetClose('adm')+'</div>'+
+    '<div class="rows">'+
+      '<div class="row"><span>Дней в расписании</span><b>'+S.data.days.length+'</b></div>'+
+      '<div class="row"><span>Правок с телефона</span><b>'+Object.keys(OV).length+'</b></div>'+
+    '</div>'+
+    '<div class="bar"><button class="btn" id="a_days">Расписание и ДЗ</button><button class="btn g" id="a_users">Пользователи</button></div>'+
+    '<div class="bar"><button class="btn g" id="a_notif">Уведомления</button><button class="btn g" id="a_logout">Выйти</button></div>');
+  bindClose();
+  $('#a_days').onclick=adminDaysSheet;
+  $('#a_users').onclick=usersSheet;
+  $('#a_notif').onclick=notifSheet;
+  $('#a_logout').onclick=()=>{ADMIN=false;ls.del('adm');toast('Вышли из админки');closeSheet()};
+}
+
+function adminDaysSheet(){
+  const out=[];
+  for(let i=0;i<14;i++){
+    const d=add(TODAY,i),x=parse(d),dd=dayOf(d);
+    const info=dd?(dd.off?'Выходной':dd.lessons.length+' уроков'):'нет данных';
+    out.push('<button class="dayBtn" data-date="'+d+'"><b>'+WD[x.getDay()]+', '+x.getDate()+' '+MON[x.getMonth()]+'</b>'+info+(OV[d]?' · изменено':'')+'</button>');
+  }
+  openSheet('<div class="chatHead"><b>Расписание и ДЗ</b>'+sheetClose('days')+'</div>'+out.join(''));
+  bindClose();
+  $('#sheet').querySelectorAll('[data-date]').forEach(b=>{b.onclick=()=>adminDaySheet(b.dataset.date)});
+}
+
+let draft=null;
+function readDraft(){
+  if(!draft)return;
+  const arr=[];
+  document.querySelectorAll('#lrows [data-f]').forEach(inp=>{
+    const i=+inp.dataset.i,f=inp.dataset.f;
+    arr[i]=arr[i]||{subject:'',time:'',hw:''};
+    arr[i][f]=inp.value.trim();
+  });
+  if(arr.length)draft.lessons=arr.filter(Boolean);
+}
+function adminDaySheet(date){
+  const base=dayOf(date)||{date:date,off:false,lessons:[]};
+  draft={date:date,off:!!base.off,lessons:(base.lessons||[]).map(l=>({subject:l.subject||'',time:l.time||'',hw:l.hw||''}))};
+  paintAdminDay();
+}
+function paintAdminDay(){
+  const x=parse(draft.date);
+  const rows=draft.lessons.map((l,i)=>
+    '<div class="lrow"><input class="in" data-f="subject" data-i="'+i+'" value="'+esc(l.subject)+'" placeholder="Предмет">'+
+      '<input class="in" data-f="time" data-i="'+i+'" value="'+esc(l.time)+'" placeholder="8:30-9:10" style="max-width:104px"></div>'+
+    '<div class="lrow"><input class="in" data-f="hw" data-i="'+i+'" value="'+esc(l.hw||'')+'" placeholder="Домашнее задание">'+
+      '<button class="del" data-del="'+i+'">✕</button></div>').join('');
+  openSheet(
+    '<div class="chatHead"><b>'+WD[x.getDay()]+', '+x.getDate()+' '+MON[x.getMonth()]+'</b>'+sheetClose('day')+'</div>'+
+    '<div class="sw"><span>Выходной</span><button class="tg'+(draft.off?' on':'')+'" id="d_off"></button></div>'+
+    '<div id="lrows">'+rows+'</div>'+
+    '<div class="bar"><button class="btn g" id="d_add">Добавить урок</button><button class="btn g" id="d_reset">Сбросить</button></div>'+
+    '<div class="bar"><button class="btn" id="d_save">Сохранить и опубликовать</button></div>');
+  bindClose();
+  $('#d_off').onclick=()=>{readDraft();draft.off=!draft.off;paintAdminDay()};
+  $('#d_add').onclick=()=>{readDraft();draft.lessons.push({subject:'',time:'',hw:''});paintAdminDay()};
+  $('#d_reset').onclick=()=>{
+    delete OV[draft.date];ls.set('sched_ov',JSON.stringify(OV));
+    render();toast('Правка убрана (на этом телефоне)');
+    adminDaySheet(draft.date);
+  };
+  $('#sheet').querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick=()=>{readDraft();draft.lessons.splice(+b.dataset.del,1);paintAdminDay()};
+  });
+  $('#d_save').onclick=publishDay;
+}
+
+async function publishDay(){
+  readDraft();
+  const day={date:draft.date,off:!!draft.off,lessons:draft.off?[]:draft.lessons.filter(l=>l.subject||l.hw||l.time)};
+  OV[day.date]=day;
+  ls.set('sched_ov',JSON.stringify(OV));
+  render();closeSheet();
+  const payload=await schedEnc({days:[day],ts:Date.now()});
+  try{
+    await postTo(SCHED_TOPIC,payload);
+    toast('Опубликовано для всех');
+  }catch(e){
+    schedOut.push(payload);
+    ls.set('sched_out',JSON.stringify(schedOut));
+    toast('Нет сети — отправится позже');
+  }
+}
+
+async function pollSchedUpdates(){
+  if(schedOut.length){
+    const left=[];
+    for(const p of schedOut){try{await postTo(SCHED_TOPIC,p)}catch(e){left.push(p)}}
+    schedOut=left;ls.set('sched_out',JSON.stringify(schedOut));
+  }
+  try{
+    const q=schedSince?('&since='+encodeURIComponent(schedSince)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+SCHED_TOPIC+'/json?poll=1'+q,{cache:'no-store'});
+    if(!r.ok)return;
+    const lines=(await r.text()).split('\n').filter(Boolean);
+    let changed=false;
+    for(const line of lines){
+      let ev;try{ev=JSON.parse(line)}catch(e){continue}
+      if(ev.event!=='message'||!ev.message)continue;
+      if(ev.id)schedSince=ev.id;
+      const u=await schedDec(ev.message);
+      if(u&&Array.isArray(u.days))u.days.forEach(dd=>{
+        if(dd&&dd.date){OV[dd.date]=dd;changed=true}
+      });
+    }
+    ls.set('sched_since',schedSince||'');
+    if(changed){ls.set('sched_ov',JSON.stringify(OV));render()}
+  }catch(e){}
+}
+
+function usersSheet(){
+  if(!chat.key){toast('Откройте чат по коду класса');return}
+  openSheet('<div class="chatHead"><b>Пользователи</b>'+sheetClose('users')+'</div><div id="usersBox"></div>');
+  bindClose();
+  renderUsers();
+  chat.psince='';
+  chatPing(true).then(()=>presPoll());
+  wsStart();
+}
+function renderUsers(){
+  const box=$('#usersBox');
+  if(!box)return;
+  const now=Date.now();
+  const byName={};
+  Object.keys(chat.pres).forEach(d=>{
+    const p=chat.pres[d];
+    if(!p||now-(p.ts||0)>86400000)return;
+    const key=(p.n||'Ученик')+'|'+(d===DEV?'1':'0');
+    if(!byName[key]||p.ts>byName[key].ts)byName[key]={n:p.n||'Ученик',ts:p.ts,me:d===DEV};
+  });
+  const list=Object.values(byName).sort((a,b)=>b.ts-a.ts);
+  if(!list.length){
+    box.innerHTML='<div class="chatNote">Пока никого нет. Список заполнится, когда одноклассники откроют чат.</div>';
+    return;
+  }
+  box.innerHTML=list.map(u=>{
+    const on=now-u.ts<720000;
+    return '<div class="user"><i class="'+(on?'on':'')+'"></i><b>'+esc(u.n)+(u.me?' (ты)':'')+'</b><small>'+(on?'онлайн':'был(а) '+fmtWhen(u.ts))+'</small></div>';
+  }).join('')+'<div class="chatNote">«Онлайн» — активность за последние 12 минут.</div>';
+}
+
 $('#chatBtn').onclick=openChat;
+
 
 /* ---------- информация ---------- */
 
@@ -518,12 +978,15 @@ function infoSheet(){
    '</div>'+
    '<div class="fld"><label>Свой адрес данных (необязательно)</label><input class="in" id="s_url" placeholder="https://.../data.json" value="'+esc(custom)+'" autocomplete="url"></div>'+
    '<div class="bar"><button class="btn" id="s_sync">Обновить сейчас</button><button class="btn g" id="s_nick">Имя в чате</button></div>'+
+   '<div class="bar"><button class="btn g" id="s_notif">Уведомления</button><button class="btn g" id="s_admin">Админ</button></div>'+
    '<div class="bar"><button class="btn g" id="s_install" style="display:none">Установить приложение</button><button class="btn g" id="s_close">Закрыть</button></div>'+
    (showApkLink()?'<div class="fld"><a class="btn g" style="display:block;text-align:center;text-decoration:none;line-height:24px" href="Dnevnik.apk" download>Скачать APK для Android</a></div>':'')+
    '<div class="fld"><small style="color:var(--mut);display:block">Расписание обновляется автоматически при каждом открытии. Без интернета показывается последняя сохранённая версия.</small></div>');
   $('#s_sync').onclick=()=>{closeSheet();sync(true)};
   $('#s_close').onclick=closeSheet;
   $('#s_nick').onclick=nickSheet;
+  $('#s_notif').onclick=notifSheet;
+  $('#s_admin').onclick=adminEntry;
   if(deferredPrompt){
     const b=$('#s_install');b.style.display='';
     b.onclick=async()=>{deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch(e){}deferredPrompt=null;closeSheet()};
@@ -566,16 +1029,31 @@ if('serviceWorker' in navigator){
   }else if(seed&&Array.isArray(seed.days)&&seed.days.length){
     S.data=seed;lastUpdated=tsOf(seed);
   }
-  if(!S.data.days.some(d=>d.date===S.sel)){
-    const next=S.data.days.map(d=>d.date).filter(x=>x>=TODAY).sort()[0];
-    if(next)S.sel=next;
+  const todayDay=dayOf(S.sel);
+  if(!todayDay||todayDay.off){
+    for(let i=1;i<=7;i++){
+      const d2=add(S.sel,i),dd=dayOf(d2);
+      if(dd&&!dd.off&&dd.lessons&&dd.lessons.length){S.sel=d2;break}
+    }
   }
   render();updateBanner();
   await chatRestore();
+  if(chat.key){wsStart();chatPing(true);presPoll()}
   sync();
 })();
 
 setInterval(()=>{if(!document.hidden)sync()},90000);
+setInterval(()=>{
+  if(document.hidden||!chat.key)return;
+  if(!chatWS)chatPoll();
+  chatPing();
+  presPoll();
+},300000);
+document.addEventListener('visibilitychange',()=>{
+  if(!chat.key)return;
+  if(document.hidden){wsStop()}
+  else{wsStart();chatPoll();chatPing()}
+});
 </script>
 </body>
 </html>

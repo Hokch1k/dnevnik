@@ -1,0 +1,567 @@
+/* ---------- чат ---------- */
+/* Сообщения шифруются на устройстве (AES-GCM), сервер видит только шифротекст.
+   Тема и ключ выводятся из кода класса, поэтому без кода чат не открыть. */
+const CHAT_HOST='https://ntfy.sh';
+const CHAT_SALT_V='4hwf+0CdaqeqoMKDSFeyLA==';
+const CHAT_SALT_K='1Dl+G/fnUz7kNueMLfIvfg==';
+const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
+const CHAT_TOPIC_SALT='dnevnik-chat-2026c';
+const CHAT_ITER=120000;
+const CHAT_VER='2';
+const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
+const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
+const SCHED_KEY='YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=';
+const SCHED_TOPIC='dnevnikSchedHsPJjwoQ5_zP';
+
+const chat={key:null,topic:'',ptopic:'',nick:ls.get('chat_nick',''),msgs:[],pres:{},since:ls.get('chat_since',''),psince:ls.get('pres_since',''),out:[],timer:0,state:'',open:false,unread:0};
+try{chat.msgs=JSON.parse(ls.get('chat_msgs','[]'))||[]}catch(e){chat.msgs=[]}
+try{chat.out=JSON.parse(ls.get('chat_out','[]'))||[]}catch(e){chat.out=[]}
+try{chat.pres=JSON.parse(ls.get('chat_pres','{}'))||{}}catch(e){chat.pres={}}
+let DEV=ls.get('dev_id','');
+if(!DEV){DEV=uuid();ls.set('dev_id',DEV)}
+let ADMIN=ls.get('adm','')==='1';
+let schedOut=[];
+try{schedOut=JSON.parse(ls.get('sched_out','[]'))||[]}catch(e){schedOut=[]}
+let schedSince=ls.get('sched_since','');
+
+const NOTIF={hw:ls.get('notif_hw','1')==='1',chat:ls.get('notif_chat','1')==='1'};
+
+function uuid(){
+  if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16)});
+}
+function b64(buf){let s='';const b=new Uint8Array(buf);for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s)}
+function b64url(buf){return b64(buf).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function fromB64(s){const bin=atob(s);const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return b}
+const te=new TextEncoder(),td=new TextDecoder();
+
+async function deriveBits(code,saltB64){
+  const base=await crypto.subtle.importKey('raw',te.encode(code),'PBKDF2',false,['deriveBits']);
+  return await crypto.subtle.deriveBits({name:'PBKDF2',salt:fromB64(saltB64),iterations:CHAT_ITER,hash:'SHA-256'},base,256);
+}
+async function encWith(key,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify(obj)));
+  return b64(iv)+'.'+b64(ct);
+}
+async function decWith(key,str){
+  try{
+    const[ivS,ctS]=String(str).split('.');
+    if(!ivS||!ctS)return null;
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivS)},key,fromB64(ctS));
+    return JSON.parse(td.decode(pt));
+  }catch(e){return null}
+}
+let schedKeyObj=null;
+async function getSchedKey(){
+  if(!schedKeyObj)schedKeyObj=await crypto.subtle.importKey('raw',fromB64(SCHED_KEY),{name:'AES-GCM'},false,['encrypt','decrypt']);
+  return schedKeyObj;
+}
+async function schedEnc(obj){return encWith(await getSchedKey(),obj)}
+async function schedDec(str){return decWith(await getSchedKey(),str)}
+
+async function chatUnlock(code){
+  const check=b64(await deriveBits(code,CHAT_SALT_V));
+  if(check!==CHAT_CHECK)return false;
+  const raw=await deriveBits(code,CHAT_SALT_K);
+  chat.key=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']);
+  const th=await crypto.subtle.digest('SHA-256',te.encode(code+CHAT_TOPIC_SALT));
+  chat.topic='dnevnik'+b64url(th).slice(0,24);
+  chat.ptopic='dnevnikP'+b64url(th).slice(0,23);
+  ls.set('chat_k',b64(raw));ls.set('chat_topic',chat.topic);ls.set('chat_ptopic',chat.ptopic);ls.set('chat_ver',CHAT_VER);
+  return true;
+}
+async function chatRestore(){
+  const k=ls.get('chat_k',''),t=ls.get('chat_topic','');
+  if(!k||!t||ls.get('chat_ver','')!==CHAT_VER)return false;
+  try{
+    chat.key=await crypto.subtle.importKey('raw',fromB64(k),{name:'AES-GCM'},false,['encrypt','decrypt']);
+    chat.topic=t;
+    chat.ptopic=ls.get('chat_ptopic','')||('dnevnikP'+t.slice(8));
+    return true;
+  }catch(e){return false}
+}
+async function chatEnc(obj){return encWith(chat.key,obj)}
+async function chatDec(str){return decWith(chat.key,str)}
+
+function chatSave(){
+  chat.msgs=chat.msgs.sort((a,b)=>a.ts-b.ts).slice(-250);
+  ls.set('chat_msgs',JSON.stringify(chat.msgs));
+  ls.set('chat_since',chat.since||'');
+  ls.set('pres_since',chat.psince||'');
+  ls.set('chat_out',JSON.stringify(chat.out));
+  ls.set('chat_pres',JSON.stringify(chat.pres));
+}
+
+async function postTo(topic,payload){
+  const r=await fetch(CHAT_HOST+'/'+topic,{method:'POST',body:payload});
+  if(!r.ok)throw new Error('http '+r.status);
+  return true;
+}
+async function chatPost(payload){return postTo(chat.topic,payload)}
+
+async function applyChatObject(m){
+  if(!m)return false;
+  if(m.op==='hi'){
+    if(m.d)chat.pres[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now()};
+    return false;
+  }
+  if(m.op==='del'){
+    const i=chat.msgs.findIndex(x=>x.u===m.u);
+    if(i>=0){chat.msgs.splice(i,1);return true}
+    return false;
+  }
+  if(m.op==='edit'){
+    const msg=chat.msgs.find(x=>x.u===m.u);
+    if(msg){msg.t=m.t;msg.edited=true;return true}
+    return false;
+  }
+  if(m.u){
+    if(!chat.msgs.some(x=>x.u===m.u)){
+      chat.msgs.push({u:m.u,d:m.d,n:m.n||'Ученик',t:m.t,ts:m.ts||Date.now()});
+      return 'new';
+    }
+  }
+  return false;
+}
+
+async function chatPoll(){
+  if(!chat.key)return;
+  if(!navigator.onLine){chat.state='офлайн · последние сохранённые сообщения';paintChatState();return}
+  try{
+    const q=chat.since?('&since='+encodeURIComponent(chat.since)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+chat.topic+'/json?poll=1'+q,{cache:'no-store'});
+    if(!r.ok)throw new Error('http');
+    const lines=(await r.text()).split('\n').filter(Boolean);
+    let changed=false;const fresh=[];
+    for(const line of lines){
+      let ev;try{ev=JSON.parse(line)}catch(e){continue}
+      if(ev.event!=='message'||!ev.message)continue;
+      if(ev.id)chat.since=ev.id;
+      const m=await chatDec(ev.message);
+      const res=await applyChatObject(m);
+      if(res==='new'){changed=true;fresh.push(m)}
+      else if(res)changed=true;
+    }
+    if(chat.out.length){
+      const left=[];
+      for(const p of chat.out){try{await chatPost(p)}catch(e){left.push(p)}}
+      chat.out=left;
+    }
+    if(changed)chatSave();
+    chat.state='онлайн · '+fmtTime(Date.now());
+    paintChatState();
+    if(changed)renderChatMessages(true);
+    if(fresh.length){
+      const last=fresh[fresh.length-1];
+      if(!chat.open){
+        chat.unread+=fresh.length;
+        paintUnread();
+        if(NOTIF.chat)pushNote('Чат класса',(last.n||'Ученик')+': '+String(last.t||'').slice(0,120),'chat');
+      }
+    }
+    await presPoll();
+  }catch(e){
+    console.warn('chat poll',e);
+    chat.state=navigator.onLine?'сервер чата недоступен':'офлайн · последние сохранённые сообщения';
+    paintChatState();
+  }
+}
+
+let presBusy=false;
+async function presPoll(){
+  if(!chat.key||!chat.ptopic||presBusy)return;
+  presBusy=true;
+  try{
+    const q=chat.psince?('&since='+encodeURIComponent(chat.psince)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+chat.ptopic+'/json?poll=1'+q,{cache:'no-store'});
+    if(r.ok){
+      const lines=(await r.text()).split('\n').filter(Boolean);
+      for(const line of lines){
+        let ev;try{ev=JSON.parse(line)}catch(e){continue}
+        if(ev.event!=='message'||!ev.message)continue;
+        if(ev.id)chat.psince=ev.id;
+        const m=await chatDec(ev.message);
+        if(m&&m.op==='hi'&&m.d)chat.pres[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now()};
+      }
+      chatSave();
+      if($('#usersBox'))renderUsers();
+    }
+  }catch(e){}finally{presBusy=false}
+}
+
+let lastPing=0;
+async function chatPing(force){
+  if(!chat.key||!navigator.onLine)return;
+  if(!force&&Date.now()-lastPing<120000)return;
+  lastPing=Date.now();
+  try{await postTo(chat.ptopic,await chatEnc({op:'hi',d:DEV,n:chat.nick||'Ученик',ts:Date.now()}))}catch(e){}
+}
+
+function startChatTimer(){
+  stopChatTimer();
+  chat.timer=setInterval(()=>{chatPoll()},7000);
+}
+function stopChatTimer(){if(chat.timer){clearInterval(chat.timer);chat.timer=0}}
+
+function paintChatState(){const el=$('#chatState');if(el)el.textContent=chat.state}
+function paintUnread(){$('#chatBtn').classList.toggle('dot',chat.unread>0)}
+
+function renderChatMessages(scroll){
+  const box=$('#chatList');
+  if(!box)return;
+  if(!chat.msgs.length){
+    box.innerHTML='<div class="chatNote" style="text-align:center;padding:18px 0">Сообщений пока нет. Напишите первым.</div>';
+    return;
+  }
+  box.innerHTML=chat.msgs.map(m=>{
+    const me=m.d===DEV;
+    return '<div class="msg'+(me?' me':'')+'" data-u="'+esc(m.u)+'"><div class="b'+(m.edited?' edited':'')+'">'+esc(m.t)+'</div><div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
+  }).join('');
+  if(scroll)box.scrollTop=box.scrollHeight;
+}
+
+function sheetClose(id){
+  return '<button class="xbtn" data-close="'+id+'"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+}
+function bindClose(){
+  document.querySelectorAll('#sheet [data-close]').forEach(b=>{b.onclick=closeSheet});
+}
+
+function chatSheet(){
+  chat.open=true;chat.unread=0;paintUnread();
+  openSheet(
+    '<div class="chatHead"><b>Чат класса</b><span id="chatState">'+esc(chat.state||'…')+'</span>'+sheetClose('chat')+'</div>'+
+    '<div class="chatList" id="chatList"></div>'+
+    '<div class="chatBar"><input class="in" id="chatInput" placeholder="Сообщение…" maxlength="500" autocomplete="off">'+
+    '<button class="btn" id="chatSend" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 20.5L21.5 12 3 3.5v6.3l12 2.2-12 2.2z"/></svg></button></div>');
+  bindClose();
+  renderChatMessages(true);
+  startChatTimer();
+  chatPoll();
+  chatPing(true);
+  $('#chatSend').onclick=chatSend;
+  $('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chatSend()}});
+  $('#chatList').onclick=e=>{
+    const b=e.target.closest('.msg');
+    if(!b)return;
+    msgActions(b.dataset.u);
+  };
+  setTimeout(()=>{const i=$('#chatInput');if(i)i.focus()},250);
+}
+
+async function sendChatObject(m){
+  const payload=await chatEnc(m);
+  try{
+    await chatPost(payload);
+    chat.state='онлайн · '+fmtTime(Date.now());
+    paintChatState();
+    return true;
+  }catch(e){
+    console.warn('chat post',e);
+    chat.out.push(payload);
+    chatSave();
+    chat.state='нет сети · отправится позже';
+    paintChatState();
+    return false;
+  }
+}
+
+async function chatSend(){
+  const inp=$('#chatInput');
+  if(!inp)return;
+  const t=inp.value.trim();
+  if(!t)return;
+  inp.value='';
+  const m={u:uuid(),d:DEV,n:chat.nick||'Ученик',t:t.slice(0,500),ts:Date.now()};
+  chat.msgs.push(m);
+  chatSave();
+  renderChatMessages(true);
+  await sendChatObject(m);
+}
+
+function msgActions(u){
+  const m=chat.msgs.find(x=>x.u===u);
+  if(!m)return;
+  const mine=m.d===DEV;
+  if(!mine&&!ADMIN)return;
+  openSheet(
+    '<div class="chatHead"><b>'+esc(mine?'Ваше сообщение':(m.n||'Сообщение'))+'</b>'+sheetClose('msg')+'</div>'+
+    '<div class="chatNote" style="margin:0 0 14px">'+esc(String(m.t||'').slice(0,300))+'</div>'+
+    '<div class="bar"><button class="btn g" id="m_edit">Изменить</button><button class="btn g" id="m_del" style="color:#ffb3b3">Удалить</button></div>'+
+    '<div class="bar"><button class="btn g" id="m_close">Закрыть</button></div>');
+  bindClose();
+  $('#m_close').onclick=()=>chatSheet();
+  $('#m_edit').onclick=()=>chatEditSheet(u);
+  $('#m_del').onclick=()=>chatDelete(u);
+}
+
+function chatEditSheet(u){
+  const m=chat.msgs.find(x=>x.u===u);
+  if(!m)return;
+  openSheet(
+    '<div class="chatHead"><b>Изменить сообщение</b>'+sheetClose('edit')+'</div>'+
+    '<div class="fld"><input class="in" id="e_text" maxlength="500" value="'+esc(m.t)+'"></div>'+
+    '<div class="bar"><button class="btn" id="e_save">Сохранить</button><button class="btn g" id="e_cancel">Отмена</button></div>');
+  bindClose();
+  $('#e_cancel').onclick=()=>chatSheet();
+  $('#e_save').onclick=async()=>{
+    const t=$('#e_text').value.trim();
+    if(!t){toast('Пустое сообщение');return}
+    m.t=t.slice(0,500);m.edited=true;
+    chatSave();
+    chatSheet();
+    await sendChatObject({op:'edit',u:u,t:m.t,ts:Date.now()});
+  };
+}
+
+async function chatDelete(u){
+  const i=chat.msgs.findIndex(x=>x.u===u);
+  if(i<0)return;
+  chat.msgs.splice(i,1);
+  chatSave();
+  chatSheet();
+  await sendChatObject({op:'del',u:u,ts:Date.now()});
+}
+
+function unlockSheet(error){
+  openSheet(
+    '<div class="chatHead"><b>Чат класса</b>'+sheetClose('unlock')+'</div>'+
+    '<div class="fld"><label>Код класса</label><input class="in" id="u_code" placeholder="введите код" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'+
+    (error?'<div class="chatNote" style="color:var(--bad)">Неверный код</div>':'')+
+    '<div class="bar"><button class="btn" id="u_go">Войти</button><button class="btn g" id="u_cancel">Отмена</button></div>'+
+    '<div class="chatNote">Код выдаёт староста. Без кода чат не открывается, а на сервере сообщения лежат только в зашифрованном виде.</div>');
+  bindClose();
+  const go=async()=>{
+    const code=$('#u_code').value.trim();
+    if(!code){toast('Введите код');return}
+    if(await chatUnlock(code)){
+      if(chat.nick)chatSheet();
+      else nickSheet();
+    }else{
+      unlockSheet(true);
+    }
+  };
+  $('#u_go').onclick=go;
+  $('#u_cancel').onclick=closeSheet;
+  $('#u_code').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
+  setTimeout(()=>$('#u_code').focus(),250);
+}
+function nickSheet(){
+  openSheet(
+    '<div class="chatHead"><b>Как вас зовут?</b>'+sheetClose('nick')+'</div>'+
+    '<div class="fld"><label>Имя в чате</label><input class="in" id="n_nick" maxlength="24" placeholder="Например, Артём" value="'+esc(chat.nick||'')+'"></div>'+
+    '<div class="bar"><button class="btn" id="n_go">Сохранить</button></div>');
+  bindClose();
+  $('#n_go').onclick=()=>{
+    const n=$('#n_nick').value.trim().slice(0,24);
+    if(!n){toast('Введите имя');return}
+    chat.nick=n;ls.set('chat_nick',n);
+    chatPing(true);
+    chatSheet();
+  };
+}
+
+async function openChat(){
+  if(!chat.key&&!await chatRestore()){unlockSheet(false);return}
+  if(!chat.nick){nickSheet();return}
+  chatSheet();
+}
+
+/* ---------- уведомления ---------- */
+
+async function askNotif(){
+  if(!('Notification' in window))return false;
+  if(Notification.permission==='granted')return true;
+  if(Notification.permission==='denied')return false;
+  try{return (await Notification.requestPermission())==='granted'}catch(e){return false}
+}
+function pushNote(title,body,tag){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  try{new Notification(title,{body:body,icon:'icon-192.png',tag:tag})}catch(e){}
+}
+function notifSheet(){
+  openSheet(
+    '<div class="chatHead"><b>Уведомления</b>'+sheetClose('notif')+'</div>'+
+    '<div class="sw"><span>Домашнее задание</span><button class="tg'+(NOTIF.hw?' on':'')+'" id="n_hw"></button></div>'+
+    '<div class="sw"><span>Сообщения в чате</span><button class="tg'+(NOTIF.chat?' on':'')+'" id="n_chat"></button></div>'+
+    '<div class="chatNote">Уведомления приходят, пока приложение запущено (в том числе свёрнуто), и при следующем открытии.</div>');
+  bindClose();
+  $('#n_hw').onclick=async()=>{
+    NOTIF.hw=!NOTIF.hw;ls.set('notif_hw',NOTIF.hw?'1':'0');
+    if(NOTIF.hw&&!await askNotif()){NOTIF.hw=false;ls.set('notif_hw','0');toast('Разрешите уведомления в настройках')}
+    notifSheet();
+  };
+  $('#n_chat').onclick=async()=>{
+    NOTIF.chat=!NOTIF.chat;ls.set('notif_chat',NOTIF.chat?'1':'0');
+    if(NOTIF.chat&&!await askNotif()){NOTIF.chat=false;ls.set('notif_chat','0');toast('Разрешите уведомления в настройках')}
+    notifSheet();
+  };
+}
+
+/* ---------- админ-панель ---------- */
+
+async function adminUnlock(code){
+  const chk=b64(await deriveBits(code,ADMIN_SALT_V));
+  if(chk!==ADMIN_CHECK)return false;
+  ADMIN=true;ls.set('adm','1');
+  return true;
+}
+function adminEntry(){ADMIN?adminSheet():adminLoginSheet(false)}
+
+function adminLoginSheet(err){
+  openSheet(
+    '<div class="chatHead"><b>Админ-панель</b>'+sheetClose('adm')+'</div>'+
+    '<div class="fld"><label>Код администратора</label><input class="in" id="a_code" type="password" autocomplete="off" placeholder="код"></div>'+
+    (err?'<div class="chatNote" style="color:var(--bad)">Неверный код</div>':'')+
+    '<div class="bar"><button class="btn" id="a_go">Войти</button><button class="btn g" id="a_cancel">Отмена</button></div>');
+  bindClose();
+  const go=async()=>{
+    const code=$('#a_code').value.trim();
+    if(!code)return;
+    if(await adminUnlock(code))adminSheet();
+    else adminLoginSheet(true);
+  };
+  $('#a_go').onclick=go;
+  $('#a_cancel').onclick=closeSheet;
+  $('#a_code').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
+  setTimeout(()=>$('#a_code').focus(),250);
+}
+
+function adminSheet(){
+  openSheet(
+    '<div class="chatHead"><b>Админ-панель</b>'+sheetClose('adm')+'</div>'+
+    '<div class="rows">'+
+      '<div class="row"><span>Дней в расписании</span><b>'+S.data.days.length+'</b></div>'+
+      '<div class="row"><span>Правок с телефона</span><b>'+Object.keys(OV).length+'</b></div>'+
+    '</div>'+
+    '<div class="bar"><button class="btn" id="a_days">Расписание и ДЗ</button><button class="btn g" id="a_users">Пользователи</button></div>'+
+    '<div class="bar"><button class="btn g" id="a_notif">Уведомления</button><button class="btn g" id="a_logout">Выйти</button></div>');
+  bindClose();
+  $('#a_days').onclick=adminDaysSheet;
+  $('#a_users').onclick=usersSheet;
+  $('#a_notif').onclick=notifSheet;
+  $('#a_logout').onclick=()=>{ADMIN=false;ls.del('adm');toast('Вышли из админки');closeSheet()};
+}
+
+function adminDaysSheet(){
+  const out=[];
+  for(let i=0;i<14;i++){
+    const d=add(TODAY,i),x=parse(d),dd=dayOf(d);
+    const info=dd?(dd.off?'Выходной':dd.lessons.length+' уроков'):'нет данных';
+    out.push('<button class="dayBtn" data-date="'+d+'"><b>'+WD[x.getDay()]+', '+x.getDate()+' '+MON[x.getMonth()]+'</b>'+info+(OV[d]?' · изменено':'')+'</button>');
+  }
+  openSheet('<div class="chatHead"><b>Расписание и ДЗ</b>'+sheetClose('days')+'</div>'+out.join(''));
+  bindClose();
+  $('#sheet').querySelectorAll('[data-date]').forEach(b=>{b.onclick=()=>adminDaySheet(b.dataset.date)});
+}
+
+let draft=null;
+function readDraft(){
+  if(!draft)return;
+  const arr=[];
+  document.querySelectorAll('#lrows [data-f]').forEach(inp=>{
+    const i=+inp.dataset.i,f=inp.dataset.f;
+    arr[i]=arr[i]||{subject:'',time:'',hw:''};
+    arr[i][f]=inp.value.trim();
+  });
+  if(arr.length)draft.lessons=arr.filter(Boolean);
+}
+function adminDaySheet(date){
+  const base=dayOf(date)||{date:date,off:false,lessons:[]};
+  draft={date:date,off:!!base.off,lessons:(base.lessons||[]).map(l=>({subject:l.subject||'',time:l.time||'',hw:l.hw||''}))};
+  paintAdminDay();
+}
+function paintAdminDay(){
+  const x=parse(draft.date);
+  const rows=draft.lessons.map((l,i)=>
+    '<div class="lrow"><input class="in" data-f="subject" data-i="'+i+'" value="'+esc(l.subject)+'" placeholder="Предмет">'+
+      '<input class="in" data-f="time" data-i="'+i+'" value="'+esc(l.time)+'" placeholder="8:30-9:10" style="max-width:104px"></div>'+
+    '<div class="lrow"><input class="in" data-f="hw" data-i="'+i+'" value="'+esc(l.hw||'')+'" placeholder="Домашнее задание">'+
+      '<button class="del" data-del="'+i+'">✕</button></div>').join('');
+  openSheet(
+    '<div class="chatHead"><b>'+WD[x.getDay()]+', '+x.getDate()+' '+MON[x.getMonth()]+'</b>'+sheetClose('day')+'</div>'+
+    '<div class="sw"><span>Выходной</span><button class="tg'+(draft.off?' on':'')+'" id="d_off"></button></div>'+
+    '<div id="lrows">'+rows+'</div>'+
+    '<div class="bar"><button class="btn g" id="d_add">Добавить урок</button><button class="btn g" id="d_reset">Сбросить</button></div>'+
+    '<div class="bar"><button class="btn" id="d_save">Сохранить и опубликовать</button></div>');
+  bindClose();
+  $('#d_off').onclick=()=>{readDraft();draft.off=!draft.off;paintAdminDay()};
+  $('#d_add').onclick=()=>{readDraft();draft.lessons.push({subject:'',time:'',hw:''});paintAdminDay()};
+  $('#d_reset').onclick=()=>{
+    delete OV[draft.date];ls.set('sched_ov',JSON.stringify(OV));
+    render();toast('Правка убрана (на этом телефоне)');
+    adminDaySheet(draft.date);
+  };
+  $('#sheet').querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick=()=>{readDraft();draft.lessons.splice(+b.dataset.del,1);paintAdminDay()};
+  });
+  $('#d_save').onclick=publishDay;
+}
+
+async function publishDay(){
+  readDraft();
+  const day={date:draft.date,off:!!draft.off,lessons:draft.off?[]:draft.lessons.filter(l=>l.subject||l.hw||l.time)};
+  OV[day.date]=day;
+  ls.set('sched_ov',JSON.stringify(OV));
+  render();closeSheet();
+  const payload=await schedEnc({days:[day],ts:Date.now()});
+  try{
+    await postTo(SCHED_TOPIC,payload);
+    toast('Опубликовано для всех');
+  }catch(e){
+    schedOut.push(payload);
+    ls.set('sched_out',JSON.stringify(schedOut));
+    toast('Нет сети — отправится позже');
+  }
+}
+
+async function pollSchedUpdates(){
+  if(schedOut.length){
+    const left=[];
+    for(const p of schedOut){try{await postTo(SCHED_TOPIC,p)}catch(e){left.push(p)}}
+    schedOut=left;ls.set('sched_out',JSON.stringify(schedOut));
+  }
+  try{
+    const q=schedSince?('&since='+encodeURIComponent(schedSince)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+SCHED_TOPIC+'/json?poll=1'+q,{cache:'no-store'});
+    if(!r.ok)return;
+    const lines=(await r.text()).split('\n').filter(Boolean);
+    let changed=false;
+    for(const line of lines){
+      let ev;try{ev=JSON.parse(line)}catch(e){continue}
+      if(ev.event!=='message'||!ev.message)continue;
+      if(ev.id)schedSince=ev.id;
+      const u=await schedDec(ev.message);
+      if(u&&Array.isArray(u.days))u.days.forEach(dd=>{
+        if(dd&&dd.date){OV[dd.date]=dd;changed=true}
+      });
+    }
+    ls.set('sched_since',schedSince||'');
+    if(changed){ls.set('sched_ov',JSON.stringify(OV));render()}
+  }catch(e){}
+}
+
+function usersSheet(){
+  if(!chat.key){toast('Откройте чат по коду класса');return}
+  openSheet('<div class="chatHead"><b>Пользователи</b>'+sheetClose('users')+'</div><div id="usersBox"></div>');
+  bindClose();
+  renderUsers();
+  presPoll();
+}
+function renderUsers(){
+  const box=$('#usersBox');
+  if(!box)return;
+  const now=Date.now();
+  const list=Object.keys(chat.pres).map(d=>({d:d,n:chat.pres[d].n,ts:chat.pres[d].ts,me:d===DEV})).sort((a,b)=>b.ts-a.ts);
+  if(!list.length){
+    box.innerHTML='<div class="chatNote">Пока никого нет. Список заполнится, когда одноклассники откроют чат.</div>';
+    return;
+  }
+  box.innerHTML=list.map(u=>{
+    const on=now-u.ts<180000;
+    return '<div class="user"><i class="'+(on?'on':'')+'"></i><b>'+esc(u.n||'Ученик')+(u.me?' (ты)':'')+'</b><small>'+(on?'онлайн':'был(а) '+fmtWhen(u.ts))+'</small></div>';
+  }).join('')+'<div class="chatNote">«Онлайн» — активность за последние 3 минуты.</div>';
+}
+
+$('#chatBtn').onclick=openChat;

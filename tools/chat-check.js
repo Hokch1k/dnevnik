@@ -15,7 +15,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 const SALTD='4hwf+0CdaqeqoMKDSFeyLA==';
 const SALTK='1Dl+G/fnUz7kNueMLfIvfg==';
-const TOPIC_SALT='dnevnik-chat-2026c';
+const TOPIC_SALT='dnevnik-chat-2026d';
 
 function httpJson(url){
   return new Promise((resolve,reject)=>{

@@ -1,0 +1,135 @@
+async function ingestEvents(events){
+  let changed=false;const fresh=[];
+  for(const ev of events){
+    if(!ev||!ev.message)continue;
+    if(ev.id)chat.since=ev.id;
+    const m=await chatDec(ev.message);
+    const res=await applyChatObject(m);
+    if(res==='new'){changed=true;fresh.push(m)}
+    else if(res===true)changed=true;
+  }
+  if(changed){chatSave();renderChatMessages(true)}
+  if(fresh.length){
+    const last=fresh[fresh.length-1];
+    if(!chat.open){
+      chat.unread+=fresh.length;
+      paintUnread();
+      if(NOTIF.chat)pushNote('Чат класса',(last.n||'Ученик')+': '+String(last.t||'').slice(0,120),'chat');
+    }
+  }
+  return changed;
+}
+
+async function chatPoll(){
+  if(!chat.key)return;
+  if(!navigator.onLine){chat.state='офлайн · последние сохранённые сообщения';paintChatState();return}
+  try{
+    const q=chat.since?('&since='+encodeURIComponent(chat.since)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+chat.topic+'/json?poll=1'+q,{cache:'no-store'});
+    if(!r.ok)throw new Error('http '+r.status);
+    const lines=(await r.text()).split('\n').filter(Boolean);
+    const events=[];
+    for(const line of lines){try{events.push(JSON.parse(line))}catch(e){}}
+    await ingestEvents(events.filter(e=>e.event==='message'));
+    if(chat.out.length){
+      const left=[];
+      for(const p of chat.out){try{await chatPost(p)}catch(e){left.push(p)}}
+      chat.out=left;
+    }
+    chat.state='онлайн · '+fmtTime(Date.now());
+    paintChatState();
+    await presPoll();
+  }catch(e){
+    console.warn('chat poll',e);
+    chat.state=navigator.onLine?'сервер чата недоступен':'офлайн · последние сохранённые сообщения';
+    paintChatState();
+  }
+}
+
+/* живая подписка: одно соединение вместо постоянных опросов (у сервера лимит запросов) */
+let chatWS=null,presWS=null,wsOn=false;
+const WS_RETRY=6000;
+
+function wsStart(){
+  if(!chat.key||wsOn)return;
+  wsOn=true;
+  connectChatWS();
+  connectPresWS();
+}
+function connectChatWS(){
+  if(!chat.key)return;
+  try{
+    if(chatWS&&chatWS.readyState<=1)return;
+    chatWS=new WebSocket('wss://ntfy.sh/'+chat.topic+'/ws');
+    chatWS.onopen=()=>{chat.state='онлайн · '+fmtTime(Date.now());paintChatState();chatPoll()};
+    chatWS.onmessage=async ev=>{
+      let m;try{m=JSON.parse(ev.data)}catch(e){return}
+      if(m.event!=='message')return;
+      await ingestEvents([m]);
+    };
+    chatWS.onclose=()=>{chatWS=null;if(wsOn)setTimeout(connectChatWS,WS_RETRY)};
+    chatWS.onerror=()=>{try{chatWS&&chatWS.close()}catch(e){}};
+  }catch(e){}
+}
+function connectPresWS(){
+  if(!chat.key||!chat.ptopic)return;
+  try{
+    if(presWS&&presWS.readyState<=1)return;
+    presWS=new WebSocket('wss://ntfy.sh/'+chat.ptopic+'/ws');
+    presWS.onmessage=async ev=>{
+      let m;try{m=JSON.parse(ev.data)}catch(e){return}
+      if(m.event!=='message'||!m.message)return;
+      if(m.id)chat.psince=m.id;
+      const o=await chatDec(m.message);
+      if(o&&o.op==='hi'&&o.d){
+        chat.pres[o.d]={n:o.n||'Ученик',ts:o.ts||Date.now()};
+        chatSave();
+        if($('#usersBox'))renderUsers();
+      }
+    };
+    presWS.onclose=()=>{presWS=null;if(wsOn)setTimeout(connectPresWS,WS_RETRY)};
+    presWS.onerror=()=>{try{presWS&&presWS.close()}catch(e){}};
+  }catch(e){}
+}
+function wsStop(){
+  wsOn=false;
+  try{chatWS&&chatWS.close()}catch(e){}
+  try{presWS&&presWS.close()}catch(e){}
+  chatWS=null;presWS=null;
+}
+
+let presBusy=false;
+async function presPoll(){
+  if(!chat.key||!chat.ptopic||presBusy)return;
+  presBusy=true;
+  try{
+    const q=chat.psince?('&since='+encodeURIComponent(chat.psince)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+chat.ptopic+'/json?poll=1'+q,{cache:'no-store'});
+    if(r.ok){
+      const lines=(await r.text()).split('\n').filter(Boolean);
+      for(const line of lines){
+        let ev;try{ev=JSON.parse(line)}catch(e){continue}
+        if(ev.event!=='message'||!ev.message)continue;
+        if(ev.id)chat.psince=ev.id;
+        const m=await chatDec(ev.message);
+        if(m&&m.op==='hi'&&m.d)chat.pres[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now()};
+      }
+      chatSave();
+      if($('#usersBox'))renderUsers();
+    }
+  }catch(e){}finally{presBusy=false}
+}
+
+let lastPing=0;
+async function chatPing(force){
+  if(!chat.key||!navigator.onLine)return;
+  if(!force&&Date.now()-lastPing<300000)return;
+  lastPing=Date.now();
+  try{await postTo(chat.ptopic,await chatEnc({op:'hi',d:DEV,n:chat.nick||'Ученик',ts:Date.now()}))}catch(e){}
+}
+
+function startChatTimer(){
+  stopChatTimer();
+  chat.timer=setInterval(()=>{if(!chatWS)chatPoll()},60000);
+}
+function stopChatTimer(){if(chat.timer){clearInterval(chat.timer);chat.timer=0}}

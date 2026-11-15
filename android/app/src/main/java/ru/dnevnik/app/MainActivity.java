@@ -1,11 +1,20 @@
 package ru.dnevnik.app;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -20,14 +29,41 @@ import java.io.InputStream;
 public class MainActivity extends Activity {
 
     private static final int BG = 0xFF0B1226;
+    private static final String CHANNEL_ID = "dnevnik";
+    private static final int REQ_NOTIF = 7;
 
     private WebView webView;
     private AssetServer server;
+
+    /** Мост для уведомлений: системные уведомления надёжнее, чем Notification API в WebView. */
+    public class Bridge {
+        @JavascriptInterface
+        public boolean notificationsAllowed() {
+            return notifAllowed();
+        }
+
+        @JavascriptInterface
+        public void requestPermission() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    askNotifPermission();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void notify(String title, String body) {
+            showNotification(title, body);
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        createChannel();
 
         FrameLayout rootView = new FrameLayout(this);
         rootView.setBackgroundColor(BG);
@@ -52,6 +88,8 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(true);
 
         webView.setWebViewClient(new WebViewClient());
+        webView.addJavascriptInterface(new Bridge(), "DnevnikNative");
+
         rootView.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(rootView);
@@ -75,6 +113,8 @@ public class MainActivity extends Activity {
             rootView.addView(error, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
+
+        askNotifPermission();
     }
 
     private byte[] readAsset(String path) throws IOException {
@@ -90,6 +130,58 @@ public class MainActivity extends Activity {
                 is.close();
             } catch (IOException ignored) {
             }
+        }
+    }
+
+    private void askNotifPermission() {
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIF);
+        }
+    }
+
+    private boolean notifAllowed() {
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        return nm != null && nm.areNotificationsEnabled();
+    }
+
+    private void createChannel() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null && nm.getNotificationChannel(CHANNEL_ID) == null) {
+                NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Дневник", NotificationManager.IMPORTANCE_DEFAULT);
+                ch.setDescription("Домашнее задание и чат класса");
+                nm.createNotificationChannel(ch);
+            }
+        }
+    }
+
+    private void showNotification(String title, String body) {
+        try {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            int flags = Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE : PendingIntent.FLAG_UPDATE_CURRENT;
+            PendingIntent pi = PendingIntent.getActivity(this, 0, intent, flags);
+
+            Notification.Builder b;
+            if (Build.VERSION.SDK_INT >= 26) {
+                b = new Notification.Builder(this, CHANNEL_ID);
+            } else {
+                b = new Notification.Builder(this);
+            }
+            b.setContentTitle(title == null ? "Дневник" : title)
+                    .setContentText(body == null ? "" : body)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setAutoCancel(true)
+                    .setContentIntent(pi);
+
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) nm.notify((int) (System.currentTimeMillis() % 100000), b.build());
+        } catch (Exception ignored) {
         }
     }
 

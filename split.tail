@@ -1,0 +1,82 @@
+$('#chatBtn').onclick=openChat;
+
+/* ---------- информация ---------- */
+
+function showApkLink(){
+  const h=location.hostname;
+  return !!h&&h!=='localhost'&&h!=='127.0.0.1';
+}
+function infoSheet(){
+  const days=S.data.days.length;
+  const custom=(ls.get('data_url','')||'').trim();
+  const state=S.offline?'офлайн':'онлайн';
+  openSheet(
+   '<div class="rows">'+
+     '<div class="row"><span>Последнее обновление</span><b>'+fmtWhen(lastUpdated)+'</b></div>'+
+     '<div class="row"><span>Дней в расписании</span><b>'+days+'</b></div>'+
+     '<div class="row"><span>Состояние</span><b>'+state+'</b></div>'+
+     '<div class="row"><span>Имя в чате</span><b>'+esc(chat.nick||'—')+'</b></div>'+
+   '</div>'+
+   '<div class="fld"><label>Свой адрес данных (необязательно)</label><input class="in" id="s_url" placeholder="https://.../data.json" value="'+esc(custom)+'" autocomplete="url"></div>'+
+   '<div class="bar"><button class="btn" id="s_sync">Обновить сейчас</button><button class="btn g" id="s_nick">Имя в чате</button></div>'+
+   '<div class="bar"><button class="btn g" id="s_install" style="display:none">Установить приложение</button><button class="btn g" id="s_close">Закрыть</button></div>'+
+   (showApkLink()?'<div class="fld"><a class="btn g" style="display:block;text-align:center;text-decoration:none;line-height:24px" href="Dnevnik.apk" download>Скачать APK для Android</a></div>':'')+
+   '<div class="fld"><small style="color:var(--mut);display:block">Расписание обновляется автоматически при каждом открытии. Без интернета показывается последняя сохранённая версия.</small></div>');
+  $('#s_sync').onclick=()=>{closeSheet();sync(true)};
+  $('#s_close').onclick=closeSheet;
+  $('#s_nick').onclick=nickSheet;
+  if(deferredPrompt){
+    const b=$('#s_install');b.style.display='';
+    b.onclick=async()=>{deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch(e){}deferredPrompt=null;closeSheet()};
+  }
+}
+$('#repoBtn').onclick=infoSheet;
+
+/* ---------- офлайн-плашка ---------- */
+
+const banner=$('#offlineBanner');
+function updateBanner(){
+  const when=fmtWhen(lastUpdated);
+  const text=banner.querySelector('i');
+  if(S.offline){
+    text.textContent='Нет подключения к интернету · данные от '+when;
+    banner.className='show';
+  }else if(S.lastError){
+    text.textContent='Нет связи с сервером · данные от '+when;
+    banner.className='show warn';
+  }else{
+    banner.className='';
+  }
+}
+window.addEventListener('online',()=>{S.offline=false;updateBanner();sync()});
+window.addEventListener('offline',()=>{S.offline=true;S.lastError=false;updateBanner()});
+
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
+}
+
+(async function boot(){
+  const cached=loadCache();
+  const seed=seedData();
+  const stored=Number(ls.get('diary_updated','0'))||0;
+  if(cached&&Array.isArray(cached.days)){
+    S.data=cached;lastUpdated=stored||tsOf(cached);
+  }else if(seed&&Array.isArray(seed.days)&&seed.days.length){
+    S.data=seed;lastUpdated=tsOf(seed);
+  }
+  if(!S.data.days.some(d=>d.date===S.sel)){
+    const next=S.data.days.map(d=>d.date).filter(x=>x>=TODAY).sort()[0];
+    if(next)S.sel=next;
+  }
+  render();updateBanner();
+  await chatRestore();
+  sync();
+})();
+
+setInterval(()=>{if(!document.hidden)sync()},90000);
+</script>
+</body>
+</html>
