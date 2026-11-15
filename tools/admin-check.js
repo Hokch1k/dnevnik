@@ -153,6 +153,22 @@ function decChat(str){
       console.log('GDZ PAYLOAD',JSON.stringify({text:g&&g.text,url:g&&g.url}));
     }
 
+    // убрать картинку из ГДЗ (текст остаётся)
+    await c.eval(`document.querySelectorAll('[data-agdz]')[0].click()`);
+    await sleep(350);
+    await c.eval(`document.querySelector('#g_unpick').click()`);
+    await sleep(200);
+    await c.eval(`document.querySelector('#g_save').click()`);
+    await sleep(700);
+    console.log('GDZ AFTER UNPICK',await c.eval(`JSON.stringify((()=>{const g=OV['2026-11-23'].lessons[0].gdz;return {text:g&&g.text,url:g&&g.url}})())`));
+
+    // убрать ГДЗ целиком
+    await c.eval(`document.querySelectorAll('[data-agdz]')[0].click()`);
+    await sleep(350);
+    await c.eval(`document.querySelector('#g_del').click()`);
+    await sleep(700);
+    console.log('GDZ REMOVED',await c.eval(`!document.querySelector('.gdz')`));
+
     // вход в чат по коду + ник
     await c.eval(`openChat()`);
     await sleep(400);
