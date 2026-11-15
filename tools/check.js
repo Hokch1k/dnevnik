@@ -106,6 +106,16 @@ class Client{
     await c.shot(path.join(OUT,'dnevnik-sheet.png'));
     await c.eval("document.querySelector('#s_close').click()");
 
+    // проверка автообновления с внешнего адреса (SYNC_URL)
+    if(process.env.SYNC_URL){
+      await c.eval(`localStorage.setItem('data_url',${JSON.stringify(process.env.SYNC_URL)})`);
+      const before=JSON.parse(await c.eval(`JSON.stringify({sub:document.querySelector('#sub').textContent})`));
+      await c.eval(`sync(true)`);
+      await sleep(1500);
+      const after=JSON.parse(await c.eval(`JSON.stringify({sub:document.querySelector('#sub').textContent,cards:document.querySelectorAll('.card').length})`));
+      console.log('SYNC',JSON.stringify({url:process.env.SYNC_URL,before:before.sub,after:after.sub,cards:after.cards},null,1));
+      await c.eval(`localStorage.removeItem('data_url')`);
+    }
     // офлайн
     await c.send('Network.enable');
     await c.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
