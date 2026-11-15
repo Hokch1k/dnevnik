@@ -37,6 +37,8 @@ public class NotifyService extends Service {
     private static final long INTERVAL = 180000L;
     private static final long ACTIVE_GRACE = 150000L;
     private static final String HW_URL = "https://raw.githubusercontent.com/Hokch1k/dnevnik/main/data.json";
+    private static final String SCHED_TOPIC = "dnevnikSchedHsPJjwoQ5_zP";
+    private static final String SCHED_KEY = "YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=";
 
     private Thread worker;
     private volatile boolean running = true;
@@ -92,6 +94,10 @@ public class NotifyService extends Service {
             }
             try {
                 if ("1".equals(hwOn)) pollHw();
+            } catch (Exception ignored) {
+            }
+            try {
+                if ("1".equals(hwOn)) pollSched();
             } catch (Exception ignored) {
             }
             long spent = System.currentTimeMillis() - t0;
@@ -152,8 +158,32 @@ public class NotifyService extends Service {
         }
     }
 
-    private JSONObject decrypt(String s, String keyB64) {
-        try {
+    private void pollSched() throws Exception {
+        String since = pref("svc_ssince", "10m");
+        String url = "https://ntfy.sh/" + SCHED_TOPIC + "/json?poll=1&since=" + URLEncoder.encode(since, "UTF-8");
+        for (String line : http(url).split("\n")) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+            JSONObject ev;
+            try {
+                ev = new JSONObject(line);
+            } catch (Exception e) {
+                continue;
+            }
+            if (!"message".equals(ev.optString("event"))) continue;
+            String id = ev.optString("id");
+            if (id.isEmpty()) continue;
+            prefs().edit().putString("svc_ssince", id).apply();
+            JSONObject u = decrypt(ev.optString("message"), SCHED_KEY);
+            if (u == null) continue;
+            boolean hasDays = u.optJSONArray("days") != null && u.optJSONArray("days").length() > 0;
+            boolean hasTpl = u.optJSONArray("template") != null && u.optJSONArray("template").length() > 0;
+            if (hasDays) notifyUser("Расписание и ДЗ обновились", "Открой Дневник, чтобы посмотреть");
+            else if (hasTpl) notifyUser("Расписание обновилось", "Изменилось расписание уроков");
+        }
+    }
+
+    private JSONObject decrypt(String s, String keyB64) {        try {
             int dot = s.indexOf('.');
             if (dot < 0) return null;
             byte[] iv = Base64.decode(s.substring(0, dot), Base64.DEFAULT);
