@@ -117,13 +117,15 @@ function decChat(str){
     const afterDel=await c.eval(`document.querySelectorAll('.card').length`);
     console.log('DELETE LESSON',beforeDel+' -> '+afterDel);
 
-    // добавление урока
+    // добавление урока на выбранное место (2-й) и проверка, что это попало в шаблон недели
     await c.eval(`document.querySelector('[data-aadd]').click()`);
     await sleep(400);
-    await c.eval(`(()=>{document.querySelector('#l_sub').value='Тест-предмет';document.querySelector('#l_time').value='15:00-15:40';document.querySelector('#l_save').click()})()`);
+    await c.eval(`(()=>{document.querySelector('#l_pos').value='2';document.querySelector('#l_sub').value='Тест-предмет';document.querySelector('#l_time').value='15:00-15:40';document.querySelector('#l_save').click()})()`);
     await sleep(700);
-    const addRes=JSON.parse(await c.eval(`(()=>{const cards=[...document.querySelectorAll('.card')];return JSON.stringify({count:cards.length,last:(cards[cards.length-1]||{}).textContent.slice(0,60)})})()`));
+    const addRes=JSON.parse(await c.eval(`(()=>{const cards=[...document.querySelectorAll('.card')];return JSON.stringify({count:cards.length,second:(cards[1]||{}).textContent.slice(0,60),last:(cards[cards.length-1]||{}).textContent.slice(0,40)})})()`));
     console.log('ADD LESSON',JSON.stringify(addRes));
+    const tplRes=JSON.parse(await c.eval(`(()=>{go('2026-11-30');const t2=[...document.querySelectorAll('.card')][1];const n=document.querySelectorAll('.card').length;go('2026-11-24');const b=document.querySelectorAll('.card').length;return JSON.stringify({nextMonday:n,second:(t2||{}).textContent.slice(0,40),tuesday:b})})()`));
+    console.log('TEMPLATE AFTER ADD',JSON.stringify(tplRes));
 
     // вход в чат по коду + ник
     await c.eval(`openChat()`);

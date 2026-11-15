@@ -175,7 +175,33 @@ const parse=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
 const add=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
 const mon=s=>{const d=parse(s);d.setDate(d.getDate()-(d.getDay()+6)%7);return iso(d)};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ls={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+function nativeBridge(){try{return window.DnevnikNative||null}catch(e){return null}}
+function nativeRestore(){
+  try{
+    const B=nativeBridge();
+    if(!B||!B.loadState)return;
+    if(localStorage.length)return;
+    const raw=B.loadState();
+    if(!raw)return;
+    const o=JSON.parse(raw);
+    Object.keys(o).forEach(k=>{try{localStorage.setItem(k,o[k])}catch(e){}});
+  }catch(e){}
+}
+let stateT=0;
+function nativeMirror(){
+  clearTimeout(stateT);
+  stateT=setTimeout(()=>{
+    try{
+      const B=nativeBridge();
+      if(!B||!B.saveState)return;
+      const o={};
+      for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);o[k]=localStorage.getItem(k)}
+      B.saveState(JSON.stringify(o));
+    }catch(e){}
+  },400);
+}
+nativeRestore();
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}nativeMirror()},del(k){try{localStorage.removeItem(k)}catch(e){}nativeMirror()}};
 const TODAY=iso(new Date());
 const ICON={leaf:'<path d="M12 2v20M12 2l-3 3M12 2l3 3M4 7l16 10M20 7L4 17"/>'};
 
@@ -248,6 +274,7 @@ async function sync(manual){
       const changed=JSON.stringify(best)!==JSON.stringify(S.data);
       S.data=best;
       if(!S.data.days)S.data.days=[];
+      applyTmplOv();
       ls.set('diary_data',JSON.stringify(best));
       lastUpdated=bestTs||lastUpdated||Date.now();
       ls.set('diary_updated',String(lastUpdated));
@@ -271,9 +298,15 @@ async function sync(manual){
   }
   if(navigator.onLine)pollSchedUpdates();
 }
+function applyTmplOv(){
+  try{
+    const t=JSON.parse(ls.get('tmpl_ov','')||'null');
+    if(Array.isArray(t)&&t.length){S.data.template=t;return true}
+  }catch(e){}
+  return false;
+}
 function dayOf(date){
-  if(OV[date])return OV[date];
-  const ex=S.data.days.find(x=>x.date===date);
+  if(OV[date])return OV[date];  const ex=S.data.days.find(x=>x.date===date);
   if(ex)return ex;
   const wd=parse(date).getDay();
   if(wd===0||wd===6)return {date:date,off:true,lessons:[]};
@@ -805,17 +838,18 @@ function notifSheet(){
     '<div class="chatHead"><b>Уведомления</b>'+sheetClose('notif')+'</div>'+
     '<div class="sw"><span>Домашнее задание</span><button class="tg'+(NOTIF.hw?' on':'')+'" id="n_hw"></button></div>'+
     '<div class="sw"><span>Сообщения в чате</span><button class="tg'+(NOTIF.chat?' on':'')+'" id="n_chat"></button></div>'+
-    '<div class="chatNote">Уведомления приходят, пока приложение запущено (в том числе свёрнуто), и при следующем открытии.</div>');
+    '<div class="chatNote">'+(NATIVE?'Приложение проверяет обновления в фоне — уведомления приходят, даже когда оно закрыто.':'Уведомления приходят, пока сайт открыт (в том числе в фоновой вкладке).')+'</div>');
   bindClose();
+  const syncBg=()=>{try{if(NATIVE&&NATIVE.setBackground) NATIVE.setBackground(NOTIF.hw||NOTIF.chat)}catch(e){}};
   $('#n_hw').onclick=async()=>{
     NOTIF.hw=!NOTIF.hw;ls.set('notif_hw',NOTIF.hw?'1':'0');
     if(NOTIF.hw&&!await askNotif()){NOTIF.hw=false;ls.set('notif_hw','0');toast('Разрешите уведомления в настройках')}
-    notifSheet();
+    syncBg();notifSheet();
   };
   $('#n_chat').onclick=async()=>{
     NOTIF.chat=!NOTIF.chat;ls.set('notif_chat',NOTIF.chat?'1':'0');
     if(NOTIF.chat&&!await askNotif()){NOTIF.chat=false;ls.set('notif_chat','0');toast('Разрешите уведомления в настройках')}
-    notifSheet();
+    syncBg();notifSheet();
   };
 }
 
@@ -885,12 +919,27 @@ function liveDay(date){
   const d=dayOf(date)||{date:date,off:false,lessons:[]};
   return {date:date,off:!!d.off,lessons:(d.lessons||[]).map(l=>({subject:l.subject||'',time:l.time||'',hw:l.hw||'',noHw:!!l.noHw}))};
 }
+function syncTemplate(day){
+  const wd=parse(day.date).getDay();
+  if(wd<1||wd>5)return null;
+  const lessons=(day.lessons||[]).map(l=>l.noHw?{subject:l.subject,time:l.time,noHw:true}:{subject:l.subject,time:l.time});
+  const tpl=S.data.template||[];
+  const t=tpl.find(x=>x.wd===wd);
+  if(t)t.lessons=lessons;
+  else{tpl.push({wd:wd,lessons:lessons});tpl.sort((a,b)=>a.wd-b.wd)}
+  S.data.template=tpl;
+  ls.set('tmpl_ov',JSON.stringify(tpl));
+  return {wd:wd,lessons:lessons};
+}
 function saveDay(day){
   OV[day.date]=day;ls.set('sched_ov',JSON.stringify(OV));
-  render();publishDayData(day);
+  const t=syncTemplate(day);
+  render();publishDayData(day,t);
 }
-async function publishDayData(day){
-  const payload=await schedEnc({days:[day],ts:Date.now()});
+async function publishDayData(day,t){
+  const obj={days:[day],ts:Date.now()};
+  if(t)obj.template=[t];
+  const payload=await schedEnc(obj);
   try{
     await postTo(SCHED_TOPIC,payload);
     toast('Опубликовано для всех');
@@ -905,18 +954,30 @@ function editLesson(date,idx){
   if(!ADMIN)return;
   const day=liveDay(date),x=parse(date);
   const cur=idx>=0?(day.lessons[idx]||{subject:'',time:''}):{subject:'',time:''};
+  const n=day.lessons.length;
+  const total=idx>=0?n:n+1;
+  const selPos=idx>=0?idx+1:n+1;
+  let opts='';
+  for(let k=1;k<=Math.max(total,1);k++)opts+='<option value="'+k+'"'+(k===selPos?' selected':'')+'>'+k+(k===1?' — первый':(k===total&&total>1?' — последний':''))+'</option>';
   openSheet(
     '<div class="chatHead"><b>'+WD[x.getDay()]+', '+x.getDate()+' '+MON[x.getMonth()]+'</b>'+sheetClose('ed')+'</div>'+
+    '<div class="fld"><label>Номер урока</label><select class="in" id="l_pos">'+opts+'</select></div>'+
     '<div class="fld"><label>Предмет</label><input class="in" id="l_sub" maxlength="60" value="'+esc(cur.subject)+'" placeholder="Например, Алгебра"></div>'+
     '<div class="fld"><label>Время</label><input class="in" id="l_time" maxlength="20" value="'+esc(cur.time)+'" placeholder="8:30-9:10"></div>'+
-    '<div class="bar"><button class="btn" id="l_save">'+(idx>=0?'Сохранить':'Добавить урок')+'</button><button class="btn g" id="l_cancel">Отмена</button></div>');
+    '<div class="bar"><button class="btn" id="l_save">'+(idx>=0?'Сохранить':'Добавить урок')+'</button><button class="btn g" id="l_cancel">Отмена</button></div>'+
+    '<div class="chatNote">Изменение попадёт во все недели для этого дня недели.</div>');
   bindClose();
   $('#l_cancel').onclick=closeSheet;
   $('#l_save').onclick=()=>{
     const subject=$('#l_sub').value.trim(),time=$('#l_time').value.trim();
     if(!subject){toast('Впишите предмет');return}
-    if(idx>=0){day.lessons[idx].subject=subject;day.lessons[idx].time=time}
-    else{day.off=false;day.lessons.push({subject:subject,time:time,hw:''})}
+    const pos=Math.max(1,Math.min(+$('#l_pos').value||1,day.lessons.length+(idx>=0?0:1)));
+    const lessons=day.lessons.slice();
+    const item=idx>=0?Object.assign({},lessons[idx],{subject:subject,time:time}):{subject:subject,time:time,hw:''};
+    if(idx>=0)lessons.splice(idx,1);
+    lessons.splice(pos-1,0,item);
+    day.lessons=lessons;
+    if(idx<0)day.off=false;
     closeSheet();saveDay(day);
   };
   setTimeout(()=>{const i=$('#l_sub');if(i)i.focus()},250);
@@ -975,9 +1036,21 @@ async function pollSchedUpdates(){
       if(u&&Array.isArray(u.days))u.days.forEach(dd=>{
         if(dd&&dd.date){OV[dd.date]=dd;changed=true}
       });
+      if(u&&Array.isArray(u.template))u.template.forEach(t=>{
+        if(!t||!t.wd||!Array.isArray(t.lessons))return;
+        S.data.template=S.data.template||[];
+        const i=S.data.template.findIndex(x=>x.wd===t.wd);
+        if(i>=0)S.data.template[i]={wd:t.wd,lessons:t.lessons};
+        else S.data.template.push({wd:t.wd,lessons:t.lessons});
+        changed=true;
+      });
     }
     ls.set('sched_since',schedSince||'');
-    if(changed){ls.set('sched_ov',JSON.stringify(OV));render()}
+    if(changed){
+      ls.set('sched_ov',JSON.stringify(OV));
+      ls.set('tmpl_ov',JSON.stringify(S.data.template||[]));
+      render();
+    }
   }catch(e){}
 }
 
@@ -1087,6 +1160,7 @@ if('serviceWorker' in navigator){
   }else if(seed&&Array.isArray(seed.days)&&seed.days.length){
     S.data=seed;lastUpdated=tsOf(seed);
   }
+  applyTmplOv();
   const todayDay=dayOf(S.sel);
   if(!todayDay||todayDay.off){
     for(let i=1;i<=7;i++){

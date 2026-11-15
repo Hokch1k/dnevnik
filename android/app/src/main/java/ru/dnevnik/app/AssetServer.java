@@ -33,9 +33,18 @@ public class AssetServer {
         this.root = root.endsWith("/") ? root : root + "/";
     }
 
-    public int start() {
+    public int start(int preferred) {
+        if (preferred > 0 && bind(preferred)) return serverSocket.getLocalPort();
+        for (int p = 8734; p <= 8749; p++) {
+            if (bind(p)) return serverSocket.getLocalPort();
+        }
+        if (bind(0)) return serverSocket.getLocalPort();
+        return -1;
+    }
+
+    private boolean bind(int port) {
         try {
-            serverSocket = new ServerSocket(0, 64, InetAddress.getByName("127.0.0.1"));
+            serverSocket = new ServerSocket(port, 64, InetAddress.getByName("127.0.0.1"));
             running = true;
             acceptor = new Thread(new Runnable() {
                 @Override
@@ -45,9 +54,9 @@ public class AssetServer {
             }, "dnevnik-assets");
             acceptor.setDaemon(true);
             acceptor.start();
-            return serverSocket.getLocalPort();
+            return true;
         } catch (IOException e) {
-            return -1;
+            return false;
         }
     }
 

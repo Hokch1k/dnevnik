@@ -8,6 +8,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
@@ -34,8 +35,9 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private AssetServer server;
+    private SharedPreferences prefs;
 
-    /** Мост для уведомлений: системные уведомления надёжнее, чем Notification API в WebView. */
+    /** Мост для уведомлений и постоянного хранилища: системные уведомления надёжнее, чем Notification API в WebView. */
     public class Bridge {
         @JavascriptInterface
         public boolean notificationsAllowed() {
@@ -56,6 +58,32 @@ public class MainActivity extends Activity {
         public void notify(String title, String body) {
             showNotification(title, body);
         }
+
+        @JavascriptInterface
+        public String loadState() {
+            return prefs.getString("ls", "");
+        }
+
+        @JavascriptInterface
+        public void saveState(String json) {
+            prefs.edit().putString("ls", json == null ? "" : json).apply();
+        }
+
+        @JavascriptInterface
+        public void setBackground(final boolean on) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Intent i = new Intent(MainActivity.this, NotifyService.class);
+                    if (on) {
+                        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
+                        else startService(i);
+                    } else {
+                        stopService(i);
+                    }
+                }
+            });
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -63,6 +91,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        prefs = getSharedPreferences("dnevnik", MODE_PRIVATE);
         createChannel();
 
         FrameLayout rootView = new FrameLayout(this);
@@ -101,8 +130,9 @@ public class MainActivity extends Activity {
             }
         }, "www");
 
-        int port = server.start();
+        int port = server.start(prefs.getInt("port", 0));
         if (port > 0) {
+            prefs.edit().putInt("port", port).apply();
             webView.loadUrl(server.baseUrl() + "/index.html");
         } else {
             webView.setVisibility(View.GONE);
@@ -115,6 +145,34 @@ public class MainActivity extends Activity {
         }
 
         askNotifPermission();
+        if (notifAllowed()) startNotifyService();
+    }
+
+    private void startNotifyService() {
+        try {
+            Intent i = new Intent(this, NotifyService.class);
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
+            else startService(i);
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_NOTIF && notifAllowed()) startNotifyService();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (prefs != null) prefs.edit().putLong("active_ts", System.currentTimeMillis()).apply();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (prefs != null) prefs.edit().putLong("active_ts", System.currentTimeMillis()).apply();
     }
 
     private byte[] readAsset(String path) throws IOException {
