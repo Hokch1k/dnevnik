@@ -14,7 +14,8 @@
 <style>
 :root{--bg:#0b1226;--ink:#eaf3ff;--mut:#9fb4d6;--glass:rgba(255,255,255,.08);--line:rgba(255,255,255,.15);--a:#7cc7ff;--b:#b69cff;--ok:#6ee7a8;--warn:#ffd166;--bad:#ff7a8a;--offline:#d32f2f}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;overflow:hidden}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+input,textarea{user-select:text;-webkit-user-select:text;-webkit-touch-callout:default}
 button,input,textarea,select{font:inherit;color:inherit;background:none;border:none;outline:none}
 #offlineBanner{background:var(--offline);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12.5px;line-height:1.15;flex-shrink:0;max-height:0;overflow:hidden;padding:0 12px;white-space:nowrap;transition:max-height .22s ease,padding .22s ease}
 #offlineBanner.show{max-height:80px;padding:calc(env(safe-area-inset-top) + 7px) 12px 7px}
@@ -121,8 +122,27 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .addLesson{width:100%;padding:13px;border-radius:16px;border:1px dashed rgba(124,199,255,.45);background:rgba(124,199,255,.08);color:var(--a);font-size:15px;font-weight:700;cursor:pointer;margin:2px 0 12px}
 .addLesson:active{transform:scale(.985)}
 .sheet textarea.in{min-height:96px;resize:vertical;font-family:inherit;line-height:1.4}
-.msg .b{cursor:pointer}
+.msg .b{cursor:default}
 .msg .b:empty{display:none}
+.msg .b.editing{padding:7px;background:rgba(10,18,44,.6)}
+.msg .b.editing textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;background:rgba(0,0,0,.25);color:var(--ink);padding:8px;font:inherit;resize:vertical}
+.editBar{display:flex;gap:6px;margin-top:6px}
+.mini{border:0;border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:600;background:linear-gradient(135deg,var(--a),var(--b));color:var(--bg);cursor:pointer}
+.mini.g{background:rgba(255,255,255,.12);color:var(--ink)}
+.attachPreview{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px;margin-top:8px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.05)}
+.apItem{position:relative}
+.apItem img{width:62px;height:62px;object-fit:cover;border-radius:10px;display:block}
+.apItem span{font-size:12px;color:var(--mut);display:inline-block;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.apX{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:#d9534f;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0}
+.apBar{margin-left:auto;display:flex;gap:8px}
+.btn.sm{padding:9px 13px;min-height:40px;font-size:13.5px}
+.lightbox{position:fixed;inset:0;z-index:60;background:rgba(4,8,20,.93);display:grid;place-items:center;padding:14px;cursor:zoom-out}
+.lightbox[hidden]{display:none}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+.msgMenu{position:fixed;z-index:70;display:flex;flex-direction:column;gap:3px;padding:6px;border-radius:12px;background:#1b2a4e;border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.msgMenu button{border:0;background:transparent;color:var(--ink);padding:8px 14px;border-radius:8px;text-align:left;cursor:pointer;font-size:13.5px;white-space:nowrap}
+.msgMenu button:hover,.msgMenu button:active{background:rgba(255,255,255,.1)}
+.msgMenu button.dngr{color:#ffb3b3}
 .att{max-width:230px;max-height:300px;border-radius:14px;display:block;background:rgba(0,0,0,.25);margin-bottom:4px;object-fit:cover}
 video.att{width:100%;max-width:230px}
 .attFile{display:inline-block;padding:10px 13px;border-radius:13px;background:rgba(255,255,255,.11);color:var(--ink);font-size:14px;text-decoration:none;word-break:break-all;margin-bottom:4px}
@@ -488,8 +508,8 @@ function closeSheet(){
 }
 window.onBack=()=>{if($('#sheet').classList.contains('open')){closeSheet();return true}return false};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sheet').classList.contains('open'))closeSheet()});
-let sx=0;$('#sheet').addEventListener('touchstart',e=>sx=e.touches[0].clientY,{passive:true});
-$('#sheet').addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-sx>90&&$('#sheet').scrollTop<=0)closeSheet()},{passive:true});
+let sx=0;$('#sheet').addEventListener('touchstart',e=>{if(e.touches&&e.touches[0])sx=e.touches[0].clientY},{passive:true});
+$('#sheet').addEventListener('touchend',e=>{if(e.changedTouches&&e.changedTouches[0]&&e.changedTouches[0].clientY-sx>90&&$('#sheet').scrollTop<=0)closeSheet()},{passive:true});
 function clipFiles(e){
   const dt=e.clipboardData;
   if(!dt)return null;
@@ -516,7 +536,7 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=11;
+const APP_CODE=12;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
@@ -629,6 +649,11 @@ async function applyChatObject(m){
   if(m.op==='edit'){
     const msg=chat.msgs.find(x=>x.u===m.u);
     if(msg){msg.t=m.t;msg.edited=true;return true}
+    return false;
+  }
+  if(m.op==='editatt'){
+    const msg=chat.msgs.find(x=>x.u===m.u);
+    if(msg&&m.att){msg.att=m.att;msg.edited=true;return true}
     return false;
   }
   if(m.u){
@@ -771,18 +796,116 @@ function renderChatMessages(scroll){
     box.innerHTML='<div class="chatNote" style="text-align:center;padding:18px 0">Сообщений пока нет. Напишите первым.</div>';
     return;
   }
-  box.innerHTML=chat.msgs.map(m=>{
-    const me=m.d===DEV;
-    let media='';
-    if(m.att&&m.att.url){
-      const ty=m.att.type||'';
-      if(ty.indexOf('image/')===0)media='<a href="'+esc(m.att.url)+'" target="_blank" rel="noopener"><img class="att" src="'+esc(m.att.url)+'" loading="lazy" alt="фото"></a>';
-      else if(ty.indexOf('video/')===0)media='<video class="att" controls preload="metadata" src="'+esc(m.att.url)+'"></video>';
-      else media='<a class="attFile" href="'+esc(m.att.url)+'" target="_blank" rel="noopener">'+esc(m.att.name||'файл')+'</a>';
-    }
-    return '<div class="msg'+(me?' me':'')+'" data-u="'+esc(m.u)+'">'+media+'<div class="b'+(m.edited?' edited':'')+'">'+esc(m.t||'')+'</div><div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
-  }).join('');
+  box.innerHTML=chat.msgs.map(msgHtml).join('');
+  bindMsgEdit();
   if(scroll)box.scrollTop=box.scrollHeight;
+}
+function msgHtml(m){
+  const me=m.d===DEV;
+  let media='';
+  if(m.att&&m.att.url){
+    const ty=m.att.type||'';
+    if(ty.indexOf('image/')===0)media='<img class="att" data-full="'+esc(m.att.url)+'" src="'+esc(m.att.url)+'" loading="lazy" alt="фото">';
+    else if(ty.indexOf('video/')===0)media='<video class="att" controls preload="metadata" src="'+esc(m.att.url)+'"></video>';
+    else media='<a class="attFile" href="'+esc(m.att.url)+'" target="_blank" rel="noopener">'+esc(m.att.name||'файл')+'</a>';
+  }
+  let body;
+  if(chat.editU===m.u){
+    body='<div class="b editing"><textarea id="msgEdit" maxlength="500">'+esc(m.t||'')+'</textarea>'+
+      '<div class="editBar"><button class="mini" id="me_save">Сохранить</button><button class="mini g" id="me_cancel">Отмена</button></div></div>';
+  }else{
+    body='<div class="b'+(m.edited?' edited':'')+'">'+esc(m.t||'')+'</div>';
+  }
+  return '<div class="msg'+(me?' me':'')+'" data-u="'+esc(m.u)+'">'+media+body+'<div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
+}
+function bindMsgEdit(){
+  if(!chat.editU)return;
+  const u=chat.editU;
+  const s=$('#me_save'),c=$('#me_cancel'),ta=$('#msgEdit');
+  if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}
+  if(s)s.onclick=()=>saveMsgEdit(u);
+  if(c)c.onclick=()=>{chat.editU=null;renderChatMessages()};
+  if(ta)ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveMsgEdit(u)}});
+}
+async function saveMsgEdit(u){
+  const ta=$('#msgEdit');
+  if(!ta)return;
+  const t=ta.value.trim();
+  const m=chat.msgs.find(x=>x.u===u);
+  if(!m)return;
+  if(!t&&!(m.att&&m.att.url)){toast('Пустое сообщение');return}
+  m.t=t.slice(0,500);m.edited=true;chat.editU=null;
+  chatSave();renderChatMessages();
+  await sendChatObject({op:'edit',u:u,t:m.t,ts:Date.now()});
+}
+function openLightbox(src){
+  const lb=$('#lightbox'),im=$('#lightImg');
+  if(!lb||!im||!src)return;
+  im.src=src;lb.hidden=false;
+  lb.onclick=()=>{lb.hidden=true;im.src=''};
+}
+function hideMsgMenu(){const m=$('#msgMenu');if(m)m.remove()}
+function showMsgMenu(u,anchor){
+  hideMsgMenu();
+  const m=chat.msgs.find(x=>x.u===u);
+  if(!m)return;
+  const mine=m.d===DEV;
+  if(!mine&&!ADMIN)return;
+  const menu=document.createElement('div');
+  menu.className='msgMenu';menu.id='msgMenu';
+  const hasMedia=!!(m.att&&m.att.url);
+  menu.innerHTML=(hasMedia?'<button data-act="replace">Заменить фото</button>':'<button data-act="edit">Изменить</button>')+
+    '<button data-act="del" class="dngr">Удалить</button>';
+  document.body.appendChild(menu);
+  const r=anchor.getBoundingClientRect();
+  const mw=menu.offsetWidth,mh=menu.offsetHeight;
+  let x=Math.min(Math.max(8,r.left+r.width/2-mw/2),innerWidth-mw-8);
+  let y=r.top-mh-8;
+  if(y<8)y=r.bottom+8;
+  menu.style.left=Math.round(x)+'px';
+  menu.style.top=Math.round(y)+'px';
+  menu.onclick=e=>{
+    const b=e.target.closest('[data-act]');
+    if(!b)return;
+    const act=b.dataset.act;
+    hideMsgMenu();
+    if(act==='edit'){chat.editU=u;renderChatMessages()}
+    else if(act==='replace')askReplace(u);
+    else if(act==='del')chatDelete(u);
+  };
+  setTimeout(()=>document.addEventListener('click',hideMsgMenu,{once:true}),0);
+}
+function askReplace(u){
+  const f=$('#chatFileReplace');
+  if(!f)return;
+  f.onchange=async e=>{
+    const file=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(file)await replaceAtt(u,file);
+  };
+  f.click();
+}
+async function replaceAtt(u,file){
+  const m=chat.msgs.find(x=>x.u===u);
+  if(!m)return;
+  let blob=file,name=file.name||'file',type=file.type||'';
+  if(type.indexOf('image/')===0&&type!=='image/gif'){
+    const s=await shrinkImage(file,1200,0.75);
+    if(s&&s.size<file.size){blob=s;type='image/jpeg';name=asciiName(name.replace(/\.[^.]+$/,'')+'.jpg')}
+  }
+  name=asciiName(name);
+  if(blob.size>12*1024*1024){toast('Файл больше 12 МБ');return}
+  try{
+    const payload=await chatEnc({op:'editatt',u:u,ts:Date.now()});
+    const ev=await uploadFile(chat.topic,payload,blob,name,type);
+    if(ev&&ev.attachment){
+      m.att={url:ev.attachment.url,name:ev.attachment.name||name,type:ev.attachment.type||type,size:ev.attachment.size||blob.size};
+      m.edited=true;
+      chatSave();renderChatMessages(true);
+    }
+  }catch(e){
+    toast('Не удалось заменить фото');
+  }
 }
 
 function sheetClose(id){
@@ -797,10 +920,13 @@ function chatSheet(){
   openSheet(
     '<div class="chatHead"><b>Чат класса</b><span id="chatState">'+esc(chat.state||'…')+'</span>'+sheetClose('chat')+'</div>'+
     '<div class="chatList" id="chatList"></div>'+
+    '<div class="attachPreview" id="attachPreview" style="display:none"></div>'+
     '<div class="chatBar"><button class="attBtn" id="chatAttach" aria-label="Фото или видео"><svg viewBox="0 0 24 24"><path d="M8.5 13.5l6.2-6.2a3.2 3.2 0 014.5 4.5l-7.6 7.6a5.2 5.2 0 01-7.4-7.4l6.7-6.7"/></svg></button>'+
     '<input class="in" id="chatInput" placeholder="Сообщение…" maxlength="500" autocomplete="off">'+
     '<button class="btn" id="chatSend" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 20.5L21.5 12 3 3.5v6.3l12 2.2-12 2.2z"/></svg></button></div>'+
-    '<input type="file" id="chatFile" accept="image/*,video/*" multiple style="display:none">');
+    '<input type="file" id="chatFile" accept="image/*,video/*" multiple style="display:none">'+
+    '<input type="file" id="chatFileReplace" accept="image/*,video/*" style="display:none">'+
+    '<div class="lightbox" id="lightbox" hidden><img id="lightImg" alt="фото"></div>');
   bindClose();
   renderChatMessages(true);
   startChatTimer();
@@ -811,16 +937,67 @@ function chatSheet(){
   $('#chatAttach').onclick=()=>{const f=$('#chatFile');if(f)f.click()};
   $('#chatFile').onchange=e=>{
     const files=e.target.files?Array.from(e.target.files):[];
-    if(files.length)chatSendFiles(files);
     e.target.value='';
+    if(files.length)showAttachPreview(files);
   };
   $('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chatSend()}});
-  $('#chatList').onclick=e=>{
-    const b=e.target.closest('.msg');
-    if(!b)return;
-    msgActions(b.dataset.u);
-  };
+  const list=$('#chatList');
+  list.addEventListener('click',e=>{
+    if(lpFired){lpFired=false;return}
+    const img=e.target.closest('img.att');
+    if(img){openLightbox(img.getAttribute('data-full')||img.src)}
+  });
+  list.addEventListener('contextmenu',e=>{
+    const el=e.target.closest('.msg');
+    if(!el)return;
+    e.preventDefault();
+    showMsgMenu(el.dataset.u,el);
+  });
+  let lpTimer=0;
+  list.addEventListener('touchstart',e=>{
+    const el=e.target.closest('.msg');
+    if(!el)return;
+    clearTimeout(lpTimer);
+    lpTimer=setTimeout(()=>{
+      lpTimer=0;lpFired=true;
+      try{if(navigator.vibrate)navigator.vibrate(12)}catch(err){}
+      showMsgMenu(el.dataset.u,el);
+    },520);
+  },{passive:true});
+  list.addEventListener('touchmove',()=>{clearTimeout(lpTimer);lpTimer=0},{passive:true});
+  list.addEventListener('touchend',()=>{clearTimeout(lpTimer);lpTimer=0},{passive:true});
   setTimeout(()=>{const i=$('#chatInput');if(i)i.focus()},250);
+}
+
+let lpFired=false;
+let pendingAttach=[];
+function showAttachPreview(files){
+  pendingAttach=files.slice();
+  const box=$('#attachPreview');
+  if(!box)return;
+  box.innerHTML=pendingAttach.map((f,i)=>{
+    const isImg=(f.type||'').indexOf('image/')===0;
+    return '<div class="apItem">'+(isImg?'<img src="'+URL.createObjectURL(f)+'" alt="">':'<span>'+esc(f.name)+'</span>')+
+      '<button class="apX" data-apx="'+i+'">×</button></div>';
+  }).join('')+'<div class="apBar"><button class="btn sm" id="ap_send">Отправить</button><button class="btn g sm" id="ap_cancel">Отмена</button></div>';
+  box.style.display='';
+  $('#ap_send').onclick=()=>{
+    const f=pendingAttach;
+    pendingAttach=[];
+    box.style.display='none';box.innerHTML='';
+    if(f.length)chatSendFiles(f);
+  };
+  $('#ap_cancel').onclick=()=>{
+    pendingAttach=[];
+    box.style.display='none';box.innerHTML='';
+  };
+  box.querySelectorAll('[data-apx]').forEach(b=>{
+    b.onclick=()=>{
+      pendingAttach.splice(+b.dataset.apx,1);
+      if(pendingAttach.length)showAttachPreview(pendingAttach);
+      else{box.style.display='none';box.innerHTML=''}
+    };
+  });
 }
 
 async function sendChatObject(m){
@@ -898,48 +1075,20 @@ async function chatSendFiles(list){
     }catch(e){
       console.warn('chat attach',e);
     }
-    chat.msgs.push(m);chatSave();renderChatMessages(true);
+    const ex=chat.msgs.findIndex(x=>x.u===m.u);
+    if(ex>=0){
+      if(m.att)chat.msgs[ex].att=m.att;
+      if(m.t)chat.msgs[ex].t=m.t;
+    }else{
+      chat.msgs.push(m);
+    }
+    chatSave();renderChatMessages(true);
     chat.state=ok?('онлайн · '+fmtTime(Date.now())):'не отправилось · попробуйте ещё раз';
     paintChatState();
     if(!ok)toast('Не удалось отправить файл');
   }
 }
 
-
-function msgActions(u){
-  const m=chat.msgs.find(x=>x.u===u);
-  if(!m)return;
-  const mine=m.d===DEV;
-  if(!mine&&!ADMIN)return;
-  openSheet(
-    '<div class="chatHead"><b>'+esc(mine?'Ваше сообщение':(m.n||'Сообщение'))+'</b>'+sheetClose('msg')+'</div>'+
-    '<div class="chatNote" style="margin:0 0 14px">'+esc(String(m.t||'').slice(0,300))+'</div>'+
-    '<div class="bar"><button class="btn g" id="m_edit">Изменить</button><button class="btn g" id="m_del" style="color:#ffb3b3">Удалить</button></div>'+
-    '<div class="bar"><button class="btn g" id="m_close">Закрыть</button></div>');
-  bindClose();
-  $('#m_close').onclick=()=>chatSheet();
-  $('#m_edit').onclick=()=>chatEditSheet(u);
-  $('#m_del').onclick=()=>chatDelete(u);
-}
-
-function chatEditSheet(u){
-  const m=chat.msgs.find(x=>x.u===u);
-  if(!m)return;
-  openSheet(
-    '<div class="chatHead"><b>Изменить сообщение</b>'+sheetClose('edit')+'</div>'+
-    '<div class="fld"><input class="in" id="e_text" maxlength="500" value="'+esc(m.t)+'"></div>'+
-    '<div class="bar"><button class="btn" id="e_save">Сохранить</button><button class="btn g" id="e_cancel">Отмена</button></div>');
-  bindClose();
-  $('#e_cancel').onclick=()=>chatSheet();
-  $('#e_save').onclick=async()=>{
-    const t=$('#e_text').value.trim();
-    if(!t){toast('Пустое сообщение');return}
-    m.t=t.slice(0,500);m.edited=true;
-    chatSave();
-    chatSheet();
-    await sendChatObject({op:'edit',u:u,t:m.t,ts:Date.now()});
-  };
-}
 
 async function chatDelete(u){
   const i=chat.msgs.findIndex(x=>x.u===u);
@@ -1021,8 +1170,10 @@ function notifSheet(){
     '<div class="chatHead"><b>Уведомления</b>'+sheetClose('notif')+'</div>'+
     '<div class="sw"><span>Домашнее задание</span><button class="tg'+(NOTIF.hw?' on':'')+'" id="n_hw"></button></div>'+
     '<div class="sw"><span>Сообщения в чате</span><button class="tg'+(NOTIF.chat?' on':'')+'" id="n_chat"></button></div>'+
-    '<div class="chatNote">'+(NATIVE?'Приложение проверяет обновления в фоне — уведомления приходят, даже когда оно закрыто.':'Уведомления приходят, пока сайт открыт (в том числе в фоновой вкладке).')+'</div>');
+    (NATIVE&&NATIVE.requestBattery?'<div class="bar"><button class="btn g" id="n_bg">Разрешить работу в фоне</button></div>':'')+
+    '<div class="chatNote">'+(NATIVE?'Приложение проверяет обновления в фоне — уведомления приходят, даже когда оно закрыто. Если телефон «усыпляет» приложение, нажмите «Разрешить работу в фоне».':'Уведомления приходят, пока сайт открыт (в том числе в фоновой вкладке).')+'</div>');
   bindClose();
+  if($('#n_bg'))$('#n_bg').onclick=()=>{try{NATIVE.requestBattery()}catch(e){}};
   const syncBg=()=>{try{if(NATIVE&&NATIVE.setBackground) NATIVE.setBackground(NOTIF.hw||NOTIF.chat)}catch(e){}};
   $('#n_hw').onclick=async()=>{
     NOTIF.hw=!NOTIF.hw;ls.set('notif_hw',NOTIF.hw?'1':'0');
@@ -1198,13 +1349,18 @@ function gdzSheet(date,idx){
   openSheet(
     '<div class="chatHead"><b>ГДЗ · '+esc(l.subject||'урок')+'</b>'+sheetClose('gdz')+'</div>'+
     '<div class="fld"><label>Текст ГДЗ (решение, ответы)</label><textarea class="in" id="g_text" maxlength="1200" placeholder="Например: № 385 — 12,5">'+esc(g.text||'')+'</textarea></div>'+
-    '<div class="fld"><button class="btn g" id="g_pick" style="width:100%">Прикрепить картинку или файл</button><input type="file" id="g_file" accept="image/*,video/*" style="display:none"><div class="chatNote" id="g_status"></div></div>'+
+    '<div class="fld"><button class="btn g" id="g_pick" style="width:100%">Прикрепить картинку или файл</button><button class="btn g" id="g_unpick" style="width:100%;margin-top:8px;display:none">Убрать картинку</button><input type="file" id="g_file" accept="image/*,video/*" style="display:none"><div class="chatNote" id="g_status"></div></div>'+
     '<div class="bar"><button class="btn" id="g_save">Сохранить</button><button class="btn g" id="g_del">Убрать ГДЗ</button></div>'+
     '<div class="chatNote">Картинка живёт на сервере около 12 часов, потом остаётся у тех, кто её уже открыл.</div>');
   bindClose();
   const st=$('#g_status');
-  const paint=()=>{st.textContent=att?('Прикреплено: '+(att.name||'файл')):'Картинка или файл не прикреплены'};
+  const paint=()=>{
+    st.textContent=att?('Прикреплено: '+(att.name||'файл')):'Картинка или файл не прикреплены';
+    const un=$('#g_unpick');
+    if(un)un.style.display=att?'':'none';
+  };
   paint();
+  $('#g_unpick').onclick=()=>{att=null;paint()};
   $('#g_pick').onclick=()=>$('#g_file').click();
   $('#g_file').onchange=async e=>{
     const f=e.target.files&&e.target.files[0];

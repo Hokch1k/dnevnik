@@ -93,6 +93,21 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void requestBattery() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                        i.setData(Uri.parse("package:" + getPackageName()));
+                        startActivity(i);
+                    } catch (Exception ignored) {
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void saveState(String json) {
             prefs.edit().putString("ls", json == null ? "" : json).apply();
         }
@@ -190,7 +205,7 @@ public class MainActivity extends Activity {
         }
 
         askNotifPermission();
-        if (notifAllowed()) startNotifyService();
+        startNotifyService();
     }
 
     private void startNotifyService() {
