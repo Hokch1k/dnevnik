@@ -115,6 +115,13 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .addLesson:active{transform:scale(.985)}
 .sheet textarea.in{min-height:96px;resize:vertical;font-family:inherit;line-height:1.4}
 .msg .b{cursor:pointer}
+.msg .b:empty{display:none}
+.att{max-width:100%;border-radius:14px;display:block;background:rgba(0,0,0,.25);margin-bottom:4px}
+video.att{width:100%;max-width:280px}
+.attFile{display:inline-block;padding:10px 13px;border-radius:13px;background:rgba(255,255,255,.11);color:var(--ink);font-size:14px;text-decoration:none;word-break:break-all;margin-bottom:4px}
+.chatBar .attBtn{width:44px;min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.08);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;color:var(--ink)}
+.chatBar .attBtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.chatBar .attBtn:active{transform:scale(.95)}
 .msg .b.edited::after{content:" изм.";font-size:10px;opacity:.65}
 .chatNote{margin-top:12px;font-size:12px;color:var(--mut)}
 .chatList{max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 6px;-webkit-overflow-scrolling:touch}
@@ -298,8 +305,76 @@ async function sync(manual){
   }
   if(navigator.onLine)pollSchedUpdates();
 }
-function applyTmplOv(){
+function applyPrefetch(){
+  const B=nativeBridge();
+  if(!B||!B.prefetchData)return;
   try{
+    const raw=B.prefetchData();
+    if(raw){
+      const d=JSON.parse(raw);
+      if(d&&Array.isArray(d.days)&&tsOf(d)>tsOf(S.data)){
+        S.data=d;applyTmplOv();
+        lastUpdated=tsOf(d);
+        ls.set('diary_data',JSON.stringify(d));
+        ls.set('diary_updated',String(lastUpdated));
+      }
+    }
+  }catch(e){}
+  try{
+    const arr=JSON.parse(B.prefetchChat()||'[]');
+    if(Array.isArray(arr)){
+      let add=0;
+      arr.forEach(m=>{
+        if(m&&m.u&&!chat.msgs.some(x=>x.u===m.u)){
+          chat.msgs.push({u:m.u,d:m.d,n:m.n||'Ученик',t:m.t||'',ts:m.ts||Date.now()});
+          add++;
+        }
+      });
+      if(add)chatSave();
+    }
+  }catch(e){}
+  try{
+    const arr=JSON.parse(B.prefetchSched()||'[]');
+    if(Array.isArray(arr)){
+      let changed=false;
+      arr.forEach(u=>{
+        if(u&&Array.isArray(u.days))u.days.forEach(dd=>{if(dd&&dd.date){OV[dd.date]=dd;changed=true}});
+        if(u&&Array.isArray(u.template))u.template.forEach(t=>{
+          if(!t||!t.wd)return;
+          S.data.template=S.data.template||[];
+          const i=S.data.template.findIndex(x=>x.wd===t.wd);
+          if(i>=0)S.data.template[i]={wd:t.wd,lessons:t.lessons};
+          else S.data.template.push({wd:t.wd,lessons:t.lessons});
+          changed=true;
+        });
+      });
+      if(changed){ls.set('sched_ov',JSON.stringify(OV));ls.set('tmpl_ov',JSON.stringify(S.data.template||[]))}
+    }
+  }catch(e){}
+}
+let UPDATE=null;
+async function checkUpdate(){
+  try{
+    const r=await fetch((nativeBridge()?SITE:'')+'version.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const j=await r.json();
+    if(!j||!j.code||j.code<=APP_CODE)return;
+    UPDATE=j;
+    const B=nativeBridge();
+    const local=(B&&B.appVersionCode)?B.appVersionCode():APP_CODE;
+    if(local<j.code){
+      toast('Доступно обновление '+j.name+' · «i» → «Обновить приложение»');
+      renderInfoUpdate();
+    }
+  }catch(e){}
+}
+function renderInfoUpdate(){
+  const b=$('#s_update');
+  if(!b)return;
+  if(UPDATE&&nativeBridge()){b.style.display='';b.textContent='Обновить приложение до '+UPDATE.name}
+  else b.style.display='none';
+}
+function applyTmplOv(){  try{
     const t=JSON.parse(ls.get('tmpl_ov','')||'null');
     if(Array.isArray(t)&&t.length){S.data.template=t;return true}
   }catch(e){}
@@ -406,6 +481,8 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
+const APP_CODE=10;
+const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
 const SCHED_KEY='YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=';
@@ -521,7 +598,9 @@ async function applyChatObject(m){
   }
   if(m.u){
     if(!chat.msgs.some(x=>x.u===m.u)){
-      chat.msgs.push({u:m.u,d:m.d,n:m.n||'Ученик',t:m.t,ts:m.ts||Date.now()});
+      const o={u:m.u,d:m.d,n:m.n||'Ученик',t:m.t,ts:m.ts||Date.now()};
+      if(m.att)o.att=m.att;
+      chat.msgs.push(o);
       return 'new';
     }
   }
@@ -534,6 +613,7 @@ async function ingestEvents(events){
     if(!ev||!ev.message)continue;
     if(ev.id)chat.since=ev.id;
     const m=await chatDec(ev.message);
+    if(m&&ev.attachment&&ev.attachment.url)m.att={url:ev.attachment.url,name:ev.attachment.name||'',type:ev.attachment.type||'',size:ev.attachment.size||0};
     const res=await applyChatObject(m);
     if(res==='new'){changed=true;fresh.push(m)}
     else if(res===true)changed=true;
@@ -658,7 +738,14 @@ function renderChatMessages(scroll){
   }
   box.innerHTML=chat.msgs.map(m=>{
     const me=m.d===DEV;
-    return '<div class="msg'+(me?' me':'')+'" data-u="'+esc(m.u)+'"><div class="b'+(m.edited?' edited':'')+'">'+esc(m.t)+'</div><div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
+    let media='';
+    if(m.att&&m.att.url){
+      const ty=m.att.type||'';
+      if(ty.indexOf('image/')===0)media='<a href="'+esc(m.att.url)+'" target="_blank" rel="noopener"><img class="att" src="'+esc(m.att.url)+'" loading="lazy" alt="фото"></a>';
+      else if(ty.indexOf('video/')===0)media='<video class="att" controls preload="metadata" src="'+esc(m.att.url)+'"></video>';
+      else media='<a class="attFile" href="'+esc(m.att.url)+'" target="_blank" rel="noopener">'+esc(m.att.name||'файл')+'</a>';
+    }
+    return '<div class="msg'+(me?' me':'')+'" data-u="'+esc(m.u)+'">'+media+'<div class="b'+(m.edited?' edited':'')+'">'+esc(m.t||'')+'</div><div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
   }).join('');
   if(scroll)box.scrollTop=box.scrollHeight;
 }
@@ -675,8 +762,10 @@ function chatSheet(){
   openSheet(
     '<div class="chatHead"><b>Чат класса</b><span id="chatState">'+esc(chat.state||'…')+'</span>'+sheetClose('chat')+'</div>'+
     '<div class="chatList" id="chatList"></div>'+
-    '<div class="chatBar"><input class="in" id="chatInput" placeholder="Сообщение…" maxlength="500" autocomplete="off">'+
-    '<button class="btn" id="chatSend" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 20.5L21.5 12 3 3.5v6.3l12 2.2-12 2.2z"/></svg></button></div>');
+    '<div class="chatBar"><button class="attBtn" id="chatAttach" aria-label="Фото или видео"><svg viewBox="0 0 24 24"><path d="M8.5 13.5l6.2-6.2a3.2 3.2 0 014.5 4.5l-7.6 7.6a5.2 5.2 0 01-7.4-7.4l6.7-6.7"/></svg></button>'+
+    '<input class="in" id="chatInput" placeholder="Сообщение…" maxlength="500" autocomplete="off">'+
+    '<button class="btn" id="chatSend" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 20.5L21.5 12 3 3.5v6.3l12 2.2-12 2.2z"/></svg></button></div>'+
+    '<input type="file" id="chatFile" accept="image/*,video/*" multiple style="display:none">');
   bindClose();
   renderChatMessages(true);
   startChatTimer();
@@ -684,6 +773,12 @@ function chatSheet(){
   setTimeout(()=>{if(!chatWS)chatPoll()},6000);
   chatPing(true);
   $('#chatSend').onclick=chatSend;
+  $('#chatAttach').onclick=()=>{const f=$('#chatFile');if(f)f.click()};
+  $('#chatFile').onchange=e=>{
+    const files=e.target.files?Array.from(e.target.files):[];
+    if(files.length)chatSendFiles(files);
+    e.target.value='';
+  };
   $('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chatSend()}});
   $('#chatList').onclick=e=>{
     const b=e.target.closest('.msg');
@@ -722,6 +817,59 @@ async function chatSend(){
   renderChatMessages(true);
   await sendChatObject(m);
 }
+
+async function shrinkImage(file,max,q){
+  try{
+    const bmp=await createImageBitmap(file);
+    const s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    const w=Math.max(1,Math.round(bmp.width*s)),h=Math.max(1,Math.round(bmp.height*s));
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+    cv.getContext('2d').drawImage(bmp,0,0,w,h);
+    try{bmp.close()}catch(e){}
+    return await new Promise(r=>cv.toBlob(r,'image/jpeg',q||0.8));
+  }catch(e){return null}
+}
+function asciiName(n){
+  const s=String(n||'file');
+  return s.replace(/[^\x20-\x7e]/g,'_').replace(/[\\/:*?"<>|]/g,'_').slice(0,80)||'file';
+}
+async function uploadFile(topic,message,blob,name,type){
+  const r=await fetch(CHAT_HOST+'/'+topic,{method:'PUT',body:blob,headers:{'Filename':asciiName(name),'Message':message}});
+  if(!r.ok)throw new Error('http '+r.status);
+  try{return await r.json()}catch(e){return null}
+}
+async function chatSendFiles(list){
+  if(!chat.key)return;
+  if(!navigator.onLine){toast('Нет сети — не отправить');return}
+  const inp=$('#chatInput');
+  const caption=inp?inp.value.trim():'';
+  if(inp&&caption)inp.value='';
+  for(const file of list){
+    let blob=file,name=file.name||'file',type=file.type||'';
+    if(type.indexOf('image/')===0&&type!=='image/gif'){
+      const s=await shrinkImage(file,1400,0.8);
+      if(s&&s.size<file.size){blob=s;type='image/jpeg';name=asciiName(name.replace(/\.[^.]+$/,'')+'.jpg')}
+    }
+    name=asciiName(name);
+    if(blob.size>12*1024*1024){toast('«'+name+'» больше 12 МБ');continue}
+    const m={u:uuid(),d:DEV,n:chat.nick||'Ученик',t:caption.slice(0,500),ts:Date.now()};
+    const payload=await chatEnc(m);
+    chat.state='отправка файла…';paintChatState();
+    let ok=false;
+    try{
+      const ev=await uploadFile(chat.topic,payload,blob,name,type);
+      if(ev&&ev.attachment)m.att={url:ev.attachment.url,name:ev.attachment.name||name,type:ev.attachment.type||type,size:ev.attachment.size||blob.size};
+      ok=true;
+    }catch(e){
+      console.warn('chat attach',e);
+    }
+    chat.msgs.push(m);chatSave();renderChatMessages(true);
+    chat.state=ok?('онлайн · '+fmtTime(Date.now())):'не отправилось · попробуйте ещё раз';
+    paintChatState();
+    if(!ok)toast('Не удалось отправить файл');
+  }
+}
+
 
 function msgActions(u){
   const m=chat.msgs.find(x=>x.u===u);
@@ -1108,8 +1256,9 @@ function infoSheet(){
    '</div>'+
    '<div class="fld"><label>Свой адрес данных (необязательно)</label><input class="in" id="s_url" placeholder="https://.../data.json" value="'+esc(custom)+'" autocomplete="url"></div>'+
    '<div class="bar"><button class="btn" id="s_sync">Обновить сейчас</button><button class="btn g" id="s_nick">Имя в чате</button></div>'+
-   '<div class="bar"><button class="btn g" id="s_notif">Уведомления</button><button class="btn g" id="s_admin">Админ</button></div>'+
-   '<div class="bar"><button class="btn g" id="s_install" style="display:none">Установить приложение</button><button class="btn g" id="s_close">Закрыть</button></div>'+
+    '<div class="bar"><button class="btn g" id="s_notif">Уведомления</button><button class="btn g" id="s_admin">Админ</button></div>'+
+    '<div class="bar"><button class="btn" id="s_update" style="display:none">Обновить приложение</button></div>'+
+    '<div class="bar"><button class="btn g" id="s_install" style="display:none">Установить приложение</button><button class="btn g" id="s_close">Закрыть</button></div>'+
    (showApkLink()?'<div class="fld"><a class="btn g" style="display:block;text-align:center;text-decoration:none;line-height:24px" href="Dnevnik.apk" download>Скачать APK для Android</a></div>':'')+
    '<div class="fld"><small style="color:var(--mut);display:block">Расписание обновляется автоматически при каждом открытии. Без интернета показывается последняя сохранённая версия.</small></div>');
   $('#s_sync').onclick=()=>{closeSheet();sync(true)};
@@ -1117,6 +1266,8 @@ function infoSheet(){
   $('#s_nick').onclick=nickSheet;
   $('#s_notif').onclick=notifSheet;
   $('#s_admin').onclick=adminEntry;
+  renderInfoUpdate();
+  $('#s_update').onclick=()=>{if(UPDATE)location.href=SITE+'Dnevnik.apk?t='+Date.now()};
   bindClose();
   if(deferredPrompt){
     const b=$('#s_install');b.style.display='';
@@ -1161,6 +1312,7 @@ if('serviceWorker' in navigator){
     S.data=seed;lastUpdated=tsOf(seed);
   }
   applyTmplOv();
+  applyPrefetch();
   const todayDay=dayOf(S.sel);
   if(!todayDay||todayDay.off){
     for(let i=1;i<=7;i++){
@@ -1171,10 +1323,12 @@ if('serviceWorker' in navigator){
   render();updateBanner();
   await chatRestore();
   if(chat.key){wsStart();chatPing(true);presPoll()}
+  checkUpdate();
   sync();
 })();
 
 setInterval(()=>{if(!document.hidden)sync()},90000);
+setInterval(()=>{if(!document.hidden)checkUpdate()},1800000);
 setInterval(()=>{
   if(document.hidden||!chat.key)return;
   if(!chatWS)chatPoll();

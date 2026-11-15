@@ -65,6 +65,30 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public String prefetchData() {
+            return prefs.getString("prefetch_data", "");
+        }
+
+        @JavascriptInterface
+        public String prefetchChat() {
+            return prefs.getString("prefetch_chat", "[]");
+        }
+
+        @JavascriptInterface
+        public String prefetchSched() {
+            return prefs.getString("prefetch_sched", "[]");
+        }
+
+        @JavascriptInterface
+        public int appVersionCode() {
+            try {
+                return getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+            } catch (Exception e) {
+                return 0;
+            }
+        }
+
+        @JavascriptInterface
         public void saveState(String json) {
             prefs.edit().putString("ls", json == null ? "" : json).apply();
         }

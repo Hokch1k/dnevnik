@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Base64;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -34,7 +35,7 @@ public class NotifyService extends Service {
     private static final String PREFS = "dnevnik";
     private static final String CHANNEL = "dnevnik_bg";
     private static final int FG_ID = 1;
-    private static final long INTERVAL = 180000L;
+    private static final long INTERVAL = 300000L;
     private static final long ACTIVE_GRACE = 150000L;
     private static final String HW_URL = "https://raw.githubusercontent.com/Hokch1k/dnevnik/main/data.json";
     private static final String SCHED_TOPIC = "dnevnikSchedHsPJjwoQ5_zP";
@@ -134,6 +135,7 @@ public class NotifyService extends Service {
             JSONObject m = decrypt(ev.optString("message"), keyB64);
             if (m == null) continue;
             if (m.has("op")) continue;
+            savePrefetch("prefetch_chat", m, "u");
             String d = m.optString("d", "");
             if (!d.isEmpty() && d.equals(dev)) continue;
             String text = m.optString("t", "");
@@ -144,7 +146,9 @@ public class NotifyService extends Service {
     }
 
     private void pollHw() throws Exception {
-        JSONObject j = new JSONObject(http(pref("hw_url", HW_URL)));
+        String body = http(pref("hw_url", HW_URL));
+        prefs().edit().putString("prefetch_data", body).putLong("prefetch_ts", System.currentTimeMillis()).apply();
+        JSONObject j = new JSONObject(body);
         String upd = j.optString("updated");
         if (upd.isEmpty()) return;
         String prev = pref("svc_hw", "");
@@ -176,10 +180,33 @@ public class NotifyService extends Service {
             prefs().edit().putString("svc_ssince", id).apply();
             JSONObject u = decrypt(ev.optString("message"), SCHED_KEY);
             if (u == null) continue;
+            savePrefetch("prefetch_sched", u, "ts");
             boolean hasDays = u.optJSONArray("days") != null && u.optJSONArray("days").length() > 0;
             boolean hasTpl = u.optJSONArray("template") != null && u.optJSONArray("template").length() > 0;
             if (hasDays) notifyUser("Расписание и ДЗ обновились", "Открой Дневник, чтобы посмотреть");
             else if (hasTpl) notifyUser("Расписание обновилось", "Изменилось расписание уроков");
+        }
+    }
+
+    private void savePrefetch(String key, JSONObject item, String uniq) {
+        try {
+            JSONArray out = new JSONArray();
+            out.put(item);
+            String id = item.optString(uniq);
+            JSONArray old;
+            try {
+                old = new JSONArray(pref(key, "[]"));
+            } catch (Exception e) {
+                old = new JSONArray();
+            }
+            for (int i = 0; i < old.length() && out.length() < 40; i++) {
+                JSONObject o = old.optJSONObject(i);
+                if (o == null) continue;
+                if (!id.isEmpty() && id.equals(o.optString(uniq))) continue;
+                out.put(o);
+            }
+            prefs().edit().putString(key, out.toString()).apply();
+        } catch (Exception ignored) {
         }
     }
 
