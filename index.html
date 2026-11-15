@@ -58,6 +58,10 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .nm span{font-size:13px;color:var(--mut);margin-top:2px;display:block}
 .hw{margin-top:10px;padding:10px 12px;border-radius:13px;background:rgba(10,18,44,.45);font-size:15px;line-height:1.4;white-space:pre-wrap;word-break:break-word;border:1px solid rgba(124,199,255,.12)}
 .hw.no{color:var(--mut);font-size:13.5px;font-style:italic;background:rgba(124,199,255,.06);border-color:rgba(124,199,255,.18)}
+.gdz{margin-top:9px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.05);border:1px dashed rgba(124,199,255,.32)}
+.gdz b{display:block;font-size:10.5px;letter-spacing:.09em;color:var(--a);margin-bottom:5px}
+.gdzText{font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+.gdzImg{display:block;max-width:100%;max-height:240px;border-radius:10px;margin-top:2px;background:rgba(0,0,0,.25)}
 .empty{text-align:center;color:var(--mut);padding:56px 20px;font-size:17px;animation:up .4s both}
 .empty svg{width:80px;height:80px;stroke:var(--a);fill:none;stroke-width:1.5;opacity:.8;animation:spin 14s linear infinite;margin:0 auto 12px;display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -109,6 +113,9 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .ibtn.dngr{border-color:rgba(255,120,120,.35);background:rgba(255,80,80,.14);color:#ffb3b3}
 .ibtn.sm{width:27px;height:27px;border-radius:8px}
 .ibtn.sm svg{width:12px;height:12px;stroke-width:2.2}
+.acts{display:flex;gap:5px;flex:none;align-items:center}
+.acts .ibtn{width:31px;height:31px;border-radius:9px}
+.acts .ibtn svg{width:14px;height:14px}
 .nmRow{display:flex;align-items:center;gap:7px;min-width:0}
 .nmRow b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .addLesson{width:100%;padding:13px;border-radius:16px;border:1px dashed rgba(124,199,255,.45);background:rgba(124,199,255,.08);color:var(--a);font-size:15px;font-weight:700;cursor:pointer;margin:2px 0 12px}
@@ -116,8 +123,8 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .sheet textarea.in{min-height:96px;resize:vertical;font-family:inherit;line-height:1.4}
 .msg .b{cursor:pointer}
 .msg .b:empty{display:none}
-.att{max-width:100%;border-radius:14px;display:block;background:rgba(0,0,0,.25);margin-bottom:4px}
-video.att{width:100%;max-width:280px}
+.att{max-width:230px;max-height:300px;border-radius:14px;display:block;background:rgba(0,0,0,.25);margin-bottom:4px;object-fit:cover}
+video.att{width:100%;max-width:230px}
 .attFile{display:inline-block;padding:10px 13px;border-radius:13px;background:rgba(255,255,255,.11);color:var(--ink);font-size:14px;text-decoration:none;word-break:break-all;margin-bottom:4px}
 .chatBar .attBtn{width:44px;min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.08);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;color:var(--ink)}
 .chatBar .attBtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -421,17 +428,31 @@ function card(l,i,now,date){
   let hw='';
   if(l.hw)hw='<div class="hw">'+esc(l.hw)+'</div>';
   else if(l.noHw)hw='<div class="hw no">— Без домашнего задания</div>';
-  let adm='';
-  if(ADMIN)adm=
-    '<div class="nmRow"><b>'+esc(l.subject)+'</b>'+
-      '<button class="ibtn sm" data-aedit="'+i+'" aria-label="Изменить предмет"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg></button></div>'+
-      '<span>'+esc(l.time)+'</span>';
-  else adm='<b>'+esc(l.subject)+'</b><span>'+esc(l.time)+'</span>';
+  hw+=gdzBlock(l);
+  const adm='<b>'+esc(l.subject)+'</b><span>'+esc(l.time)+'</span>';
   const admBtns=ADMIN
-    ?'<button class="ibtn" data-ahw="'+i+'" aria-label="Изменить ДЗ"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg></button>'+
-     '<button class="ibtn dngr" data-adel="'+i+'" aria-label="Удалить урок"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'
+    ?'<div class="acts">'+
+      '<button class="ibtn" data-aedit="'+i+'" aria-label="Изменить название"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>'+
+      '<button class="ibtn" data-agdz="'+i+'" aria-label="ГДЗ"><svg viewBox="0 0 24 24"><path d="M8.5 13.5l6.2-6.2a3.2 3.2 0 014.5 4.5l-7.6 7.6a5.2 5.2 0 01-7.4-7.4l6.7-6.7"/></svg></button>'+
+      '<button class="ibtn" data-ahw="'+i+'" aria-label="Изменить ДЗ"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg></button>'+
+      '<button class="ibtn dngr" data-adel="'+i+'" aria-label="Удалить урок"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'+
+     '</div>'
     :'';
   return '<div class="card'+(i===now?' now':'')+'" style="--i:'+i+'"><div class="top"><div class="num">'+(i+1)+'</div><div class="nm">'+adm+'</div>'+admBtns+'</div>'+hw+'</div>';
+}
+function gdzBlock(l){
+  const g=l.gdz;
+  if(!g)return '';
+  let inner='';
+  if(g.text)inner+='<div class="gdzText">'+esc(g.text)+'</div>';
+  if(g.url){
+    const ty=g.type||'';
+    if(ty.indexOf('image/')===0)inner+='<a href="'+esc(g.url)+'" target="_blank" rel="noopener"><img class="gdzImg" src="'+esc(g.url)+'" loading="lazy" alt="ГДЗ"></a>';
+    else if(ty.indexOf('video/')===0)inner+='<video class="gdzImg" controls preload="metadata" src="'+esc(g.url)+'"></video>';
+    else inner+='<a class="attFile" href="'+esc(g.url)+'" target="_blank" rel="noopener">'+esc(g.name||'файл')+'</a>';
+  }
+  if(!inner)return '';
+  return '<div class="gdz"><b>ГДЗ</b>'+inner+'</div>';
 }
 
 function curLesson(day){const n=new Date(),t=n.getHours()*60+n.getMinutes();
@@ -445,12 +466,13 @@ let tx=0;const M=$('#list');
 M.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
 M.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>60)go(add(S.sel,dx<0?1:-1))},{passive:true});
 M.addEventListener('click',e=>{
-  const a=e.target.closest('[data-aedit],[data-ahw],[data-adel],[data-aadd]');
+  const a=e.target.closest('[data-aedit],[data-ahw],[data-adel],[data-aadd],[data-agdz]');
   if(!a)return;
   e.stopPropagation();
   if(a.hasAttribute('data-aadd'))editLesson(S.sel,-1);
   else if(a.hasAttribute('data-aedit'))editLesson(S.sel,+a.dataset.aedit);
   else if(a.hasAttribute('data-ahw'))editHw(S.sel,+a.dataset.ahw);
+  else if(a.hasAttribute('data-agdz'))gdzSheet(S.sel,+a.dataset.agdz);
   else delLesson(S.sel,+a.dataset.adel);
 });
 $('#refreshBtn').onclick=()=>sync(true);
@@ -468,6 +490,19 @@ window.onBack=()=>{if($('#sheet').classList.contains('open')){closeSheet();retur
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sheet').classList.contains('open'))closeSheet()});
 let sx=0;$('#sheet').addEventListener('touchstart',e=>sx=e.touches[0].clientY,{passive:true});
 $('#sheet').addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-sx>90&&$('#sheet').scrollTop<=0)closeSheet()},{passive:true});
+function clipFiles(e){
+  const dt=e.clipboardData;
+  if(!dt)return null;
+  const out=[];
+  if(dt.items)for(const it of dt.items){if(it.kind==='file'){const f=it.getAsFile();if(f)out.push(f)}}
+  if(!out.length&&dt.files)for(const f of dt.files)out.push(f);
+  return out.length?out:null;
+}
+$('#sheet').addEventListener('paste',e=>{
+  if(!chat.open)return;
+  const f=clipFiles(e);
+  if(f){e.preventDefault();chatSendFiles(f)}
+});
 
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2600)}
 
@@ -481,7 +516,7 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=10;
+const APP_CODE=11;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
@@ -847,7 +882,7 @@ async function chatSendFiles(list){
   for(const file of list){
     let blob=file,name=file.name||'file',type=file.type||'';
     if(type.indexOf('image/')===0&&type!=='image/gif'){
-      const s=await shrinkImage(file,1400,0.8);
+      const s=await shrinkImage(file,1200,0.75);
       if(s&&s.size<file.size){blob=s;type='image/jpeg';name=asciiName(name.replace(/\.[^.]+$/,'')+'.jpg')}
     }
     name=asciiName(name);
@@ -1065,7 +1100,7 @@ async function clearChatAll(){
 
 function liveDay(date){
   const d=dayOf(date)||{date:date,off:false,lessons:[]};
-  return {date:date,off:!!d.off,lessons:(d.lessons||[]).map(l=>({subject:l.subject||'',time:l.time||'',hw:l.hw||'',noHw:!!l.noHw}))};
+  return {date:date,off:!!d.off,lessons:(d.lessons||[]).map(l=>{const o={subject:l.subject||'',time:l.time||'',hw:l.hw||'',noHw:!!l.noHw};if(l.gdz)o.gdz=l.gdz;return o})};
 }
 function syncTemplate(day){
   const wd=parse(day.date).getDay();
@@ -1150,6 +1185,56 @@ function editHw(date,idx){
     const txt=tx.value.trim();
     if(none&&!txt){l.hw='';l.noHw=true}
     else{l.hw=txt;l.noHw=!txt}
+    closeSheet();saveDay(day);
+  };
+}
+
+function gdzSheet(date,idx){
+  if(!ADMIN)return;
+  const day=liveDay(date),l=day.lessons[idx];
+  if(!l)return;
+  const g=l.gdz||{};
+  let att=g.url?{url:g.url,name:g.name||'',type:g.type||'',size:g.size||0}:null;
+  openSheet(
+    '<div class="chatHead"><b>ГДЗ · '+esc(l.subject||'урок')+'</b>'+sheetClose('gdz')+'</div>'+
+    '<div class="fld"><label>Текст ГДЗ (решение, ответы)</label><textarea class="in" id="g_text" maxlength="1200" placeholder="Например: № 385 — 12,5">'+esc(g.text||'')+'</textarea></div>'+
+    '<div class="fld"><button class="btn g" id="g_pick" style="width:100%">Прикрепить картинку или файл</button><input type="file" id="g_file" accept="image/*,video/*" style="display:none"><div class="chatNote" id="g_status"></div></div>'+
+    '<div class="bar"><button class="btn" id="g_save">Сохранить</button><button class="btn g" id="g_del">Убрать ГДЗ</button></div>'+
+    '<div class="chatNote">Картинка живёт на сервере около 12 часов, потом остаётся у тех, кто её уже открыл.</div>');
+  bindClose();
+  const st=$('#g_status');
+  const paint=()=>{st.textContent=att?('Прикреплено: '+(att.name||'файл')):'Картинка или файл не прикреплены'};
+  paint();
+  $('#g_pick').onclick=()=>$('#g_file').click();
+  $('#g_file').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(!f)return;
+    st.textContent='Загрузка…';
+    let blob=f,name=f.name||'file',type=f.type||'';
+    if(type.indexOf('image/')===0&&type!=='image/gif'){
+      const s=await shrinkImage(f,1200,0.75);
+      if(s&&s.size<f.size){blob=s;type='image/jpeg';name=asciiName(name.replace(/\.[^.]+$/,'')+'.jpg')}
+    }
+    name=asciiName(name);
+    if(blob.size>12*1024*1024){st.textContent='Файл больше 12 МБ';return}
+    try{
+      const payload=await schedEnc({op:'gdz',ts:Date.now()});
+      const ev=await uploadFile(SCHED_TOPIC,payload,blob,name,type);
+      if(ev&&ev.attachment)att={url:ev.attachment.url,name:ev.attachment.name||name,type:ev.attachment.type||type,size:ev.attachment.size||blob.size};
+      paint();
+    }catch(err){
+      st.textContent='Не удалось загрузить, попробуйте ещё раз';
+    }
+  };
+  $('#g_del').onclick=()=>{delete l.gdz;closeSheet();saveDay(day);toast('ГДЗ убрано')};
+  $('#g_save').onclick=()=>{
+    const txt=$('#g_text').value.trim();
+    if(!txt&&!att){delete l.gdz;closeSheet();saveDay(day);return}
+    const o={};
+    if(txt)o.text=txt;
+    if(att)Object.assign(o,att);
+    l.gdz=o;
     closeSheet();saveDay(day);
   };
 }

@@ -11,12 +11,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -32,10 +34,12 @@ public class MainActivity extends Activity {
     private static final int BG = 0xFF0B1226;
     private static final String CHANNEL_ID = "dnevnik";
     private static final int REQ_NOTIF = 7;
+    private static final int REQ_FILE = 12;
 
     private WebView webView;
     private AssetServer server;
     private SharedPreferences prefs;
+    private ValueCallback<Uri[]> filePathCallback;
 
     /** Мост для уведомлений и постоянного хранилища: системные уведомления надёжнее, чем Notification API в WebView. */
     public class Bridge {
@@ -141,6 +145,23 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(true);
 
         webView.setWebViewClient(new WebViewClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (filePathCallback != null) {
+                    filePathCallback.onReceiveValue(null);
+                }
+                filePathCallback = callback;
+                try {
+                    Intent i = params.createIntent();
+                    startActivityForResult(i, REQ_FILE);
+                    return true;
+                } catch (Exception e) {
+                    filePathCallback = null;
+                    return false;
+                }
+            }
+        });
         webView.addJavascriptInterface(new Bridge(), "DnevnikNative");
 
         rootView.addView(webView, new FrameLayout.LayoutParams(
@@ -185,6 +206,28 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_NOTIF && notifAllowed()) startNotifyService();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_FILE) {
+            if (filePathCallback != null) {
+                Uri[] out = null;
+                if (resultCode == RESULT_OK && data != null) {
+                    if (data.getClipData() != null) {
+                        int n = data.getClipData().getItemCount();
+                        out = new Uri[n];
+                        for (int i = 0; i < n; i++) out[i] = data.getClipData().getItemAt(i).getUri();
+                    } else if (data.getData() != null) {
+                        out = new Uri[]{data.getData()};
+                    }
+                }
+                filePathCallback.onReceiveValue(out);
+                filePathCallback = null;
+            }
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override

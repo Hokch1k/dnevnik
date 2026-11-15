@@ -62,7 +62,7 @@ function decChat(str){
     await sleep(2600);
 
     // перехват всех POST в ntfy: расписание и чат
-    await c.eval(`(()=>{window.__posts=[];window.__cposts=[];const o=window.fetch;window.fetch=function(u,opt){const url=String(u);if(opt&&opt.method==='POST'){if(url.indexOf('ntfy.sh')>=0){if(url.indexOf('dnevnikSched')>=0)window.__posts.push(opt.body);else window.__cposts.push({url:url,body:opt.body});return Promise.resolve(new Response('{"id":"x"}',{status:200}))}}return o.apply(this,arguments)}})()`);
+    await c.eval(`(()=>{window.__posts=[];window.__cposts=[];window.__puts=[];const o=window.fetch;window.fetch=function(u,opt){const url=String(u);if(opt&&opt.method==='POST'){if(url.indexOf('ntfy.sh')>=0){if(url.indexOf('dnevnikSched')>=0)window.__posts.push(opt.body);else window.__cposts.push({url:url,body:opt.body});return Promise.resolve(new Response('{"id":"x"}',{status:200}))}}if(opt&&opt.method==='PUT'&&url.indexOf('ntfy.sh')>=0){const nm=(opt.headers&&opt.headers.Filename)||'file';const sz=(opt.body&&opt.body.size)||1;window.__puts.push({name:nm,size:sz});return Promise.resolve(new Response(JSON.stringify({id:'p1',event:'message',attachment:{url:'https://ntfy.sh/file/test.jpg',name:nm,type:'image/jpeg',size:sz}}),{status:200,headers:{'Content-Type':'application/json'}}))}return o.apply(this,arguments)}})()`);
 
     // шаблон недели: 23 и 24 ноября
     const tmpl=JSON.parse(await c.eval(`(()=>{go('2026-11-23');const a=document.querySelectorAll('.card').length;const t1=document.querySelector('#ttl').textContent;go('2026-11-24');const b=document.querySelectorAll('.card').length;const t2=document.querySelector('#ttl').textContent;go('2026-11-21');const weekend=document.querySelector('#list').textContent.trim().slice(0,30);return JSON.stringify({mon:a,monTitle:t1,tue:b,tueTitle:t2,weekend:weekend})})()`));
@@ -126,6 +126,32 @@ function decChat(str){
     console.log('ADD LESSON',JSON.stringify(addRes));
     const tplRes=JSON.parse(await c.eval(`(()=>{go('2026-11-30');const t2=[...document.querySelectorAll('.card')][1];const n=document.querySelectorAll('.card').length;go('2026-11-24');const b=document.querySelectorAll('.card').length;return JSON.stringify({nextMonday:n,second:(t2||{}).textContent.slice(0,40),tuesday:b})})()`));
     console.log('TEMPLATE AFTER ADD',JSON.stringify(tplRes));
+
+    // ГДЗ: текст
+    await c.eval(`(go('2026-11-23'),document.querySelectorAll('[data-agdz]')[0].click())`);
+    await sleep(350);
+    console.log('gdz sheet:',await c.eval(`!!document.querySelector('#g_text')`));
+    await c.eval(`(()=>{document.querySelector('#g_text').value='№ 385 — 12,5';document.querySelector('#g_save').click()})()`);
+    await sleep(700);
+    console.log('GDZ TEXT ON CARD:',await c.eval(`(document.querySelector('.gdz')||{}).textContent||''`));
+
+    // ГДЗ: картинка
+    await c.eval(`document.querySelectorAll('[data-agdz]')[0].click()`);
+    await sleep(350);
+    const putRes=await c.eval(`(async()=>{const cv=document.createElement('canvas');cv.width=120;cv.height=80;cv.getContext('2d').fillRect(0,0,120,80);const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const dt=new DataTransfer();dt.items.add(new File([blob],'gdz.png',{type:'image/png'}));const inp=document.querySelector('#g_file');inp.files=dt.files;inp.dispatchEvent(new Event('change'));await new Promise(r=>setTimeout(r,500));return document.querySelector('#g_status').textContent})()`);
+    console.log('GDZ UPLOAD STATUS:',putRes);
+    await c.eval(`document.querySelector('#g_save').click()`);
+    await sleep(700);
+    const gdzRes=JSON.parse(await c.eval(`(()=>{const el=document.querySelector('.gdz');return JSON.stringify({text:(el||{}).textContent||'',img:!!document.querySelector('.gdzImg'),imgSrc:(document.querySelector('.gdzImg')||{}).src||''})})()`));
+    console.log('GDZ ON CARD',JSON.stringify({img:gdzRes.img,src:String(gdzRes.imgSrc).slice(-18)}));
+    const puts=JSON.parse(await c.eval(`JSON.stringify(window.__puts)`));
+    console.log('PUT uploads:',puts.length,puts[0]?puts[0].name+' '+puts[0].size:'');
+    const lastPost=JSON.parse(await c.eval(`JSON.stringify(window.__posts.slice(-1))`));
+    if(lastPost.length){
+      const plain=decSched(lastPost[0]);
+      const g=plain.days[0].lessons[0]&&plain.days[0].lessons[0].gdz;
+      console.log('GDZ PAYLOAD',JSON.stringify({text:g&&g.text,url:g&&g.url}));
+    }
 
     // вход в чат по коду + ник
     await c.eval(`openChat()`);
