@@ -1,5 +1,6 @@
-// Проверка админки, правок расписания, шаблона недели и модерации чата.
-// Публикация перехватывается (fetch подменяется), сервер не получает тестовые данные.
+// Проверка админки: шаблон недели, инлайн-правка предмета/ДЗ, удаление и добавление урока,
+// очистка чата и список пользователей. Публикации перехватываются (fetch подменяется),
+// сервер не получает тестовые данные ни в расписание, ни в чат.
 // Запуск: node tools/admin-check.js "<код класса>" "<код админа>"
 const {spawn}=require('child_process');
 const fs=require('fs');
@@ -15,6 +16,7 @@ const OUT=path.join(os.tmpdir(),'kilo');
 const PORT=9335;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const SCHED_KEY=Buffer.from('YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=','base64');
+const CHAT_SALT=Buffer.from('1Dl+G/fnUz7kNueMLfIvfg==','base64');
 
 function httpJson(url){return new Promise((res,rej)=>{require('http').get(url,r=>{let b='';r.on('data',c=>b+=c);r.on('end',()=>{try{res(JSON.parse(b))}catch(e){rej(e)}})}).on('error',rej)})}
 class Client{
@@ -35,6 +37,14 @@ function decSched(str){
   d.setAuthTag(raw.subarray(-16));
   return JSON.parse(Buffer.concat([d.update(raw.subarray(0,-16)),d.final()]).toString('utf8'));
 }
+function decChat(str){
+  const key=crypto.pbkdf2Sync(CODE,CHAT_SALT,120000,32,'sha256');
+  const[ivS,ctS]=str.split('.');
+  const d=crypto.createDecipheriv('aes-256-gcm',key,Buffer.from(ivS,'base64'));
+  const raw=Buffer.from(ctS,'base64');
+  d.setAuthTag(raw.subarray(-16));
+  return JSON.parse(Buffer.concat([d.update(raw.subarray(0,-16)),d.final()]).toString('utf8'));
+}
 
 (async()=>{
   if(!CODE||!ACODE){console.error('нужны код класса и код админа');process.exit(2)}
@@ -51,12 +61,15 @@ function decSched(str){
     await c.send('Page.navigate',{url:URL_BASE});
     await sleep(2600);
 
-    // перехват публикаций в расписание
-    await c.eval(`(()=>{window.__posts=[];const o=window.fetch;window.fetch=function(u,opt){const url=String(u);if(url.indexOf('dnevnikSched')>=0&&opt&&opt.method==='POST'){window.__posts.push(opt.body);return Promise.resolve(new Response('{"id":"x"}',{status:200}))}return o.apply(this,arguments)}})()`);
+    // перехват всех POST в ntfy: расписание и чат
+    await c.eval(`(()=>{window.__posts=[];window.__cposts=[];const o=window.fetch;window.fetch=function(u,opt){const url=String(u);if(opt&&opt.method==='POST'){if(url.indexOf('ntfy.sh')>=0){if(url.indexOf('dnevnikSched')>=0)window.__posts.push(opt.body);else window.__cposts.push({url:url,body:opt.body});return Promise.resolve(new Response('{"id":"x"}',{status:200}))}}return o.apply(this,arguments)}})()`);
 
     // шаблон недели: 23 и 24 ноября
     const tmpl=JSON.parse(await c.eval(`(()=>{go('2026-11-23');const a=document.querySelectorAll('.card').length;const t1=document.querySelector('#ttl').textContent;go('2026-11-24');const b=document.querySelectorAll('.card').length;const t2=document.querySelector('#ttl').textContent;go('2026-11-21');const weekend=document.querySelector('#list').textContent.trim().slice(0,30);return JSON.stringify({mon:a,monTitle:t1,tue:b,tueTitle:t2,weekend:weekend})})()`));
     console.log('TEMPLATE',JSON.stringify(tmpl));
+
+    // до входа карандашей нет
+    console.log('no pencils before login:',await c.eval(`document.querySelectorAll('[data-aedit]').length===0`));
 
     // админка: неверный код
     await c.eval(`adminEntry()`);
@@ -68,32 +81,51 @@ function decSched(str){
 
     await c.eval(`(()=>{document.querySelector('#a_code').value=${JSON.stringify(ACODE)};document.querySelector('#a_go').click()})()`);
     await sleep(1000);
-    console.log('admin panel:',await c.eval(`!!document.querySelector('#a_days')`));
-    await c.eval(`document.querySelector('#a_days').click()`);
-    await sleep(500);
-    const days=JSON.parse(await c.eval(`(()=>{const b=[...document.querySelectorAll('[data-date]')];return JSON.stringify({count:b.length,labels:b.slice(0,3).map(x=>x.textContent.trim().slice(0,40))})})()`));
-    console.log('DAYS',JSON.stringify(days));
-    await c.shot(path.join(OUT,'admin-days.png'));
+    const panel=JSON.parse(await c.eval(`(()=>JSON.stringify({users:!!document.querySelector('#a_users'),clear:!!document.querySelector('#a_clear'),days:!!document.querySelector('#a_days')}))()`));
+    console.log('ADMIN PANEL',JSON.stringify(panel));
+    await c.shot(path.join(OUT,'admin-panel.png'));
+    await c.eval(`closeSheet()`);
+    await sleep(400);
 
-    // правим 1 декабря
-    await c.eval(`adminDaySheet('2026-12-01')`);
-    await sleep(500);
-    const hwInputs=await c.eval(`document.querySelectorAll('#lrows [data-f="hw"]').length`);
-    console.log('editor hw inputs:',hwInputs);
-    await c.eval(`(()=>{const i=document.querySelectorAll('#lrows [data-f="hw"]');i[0].value='ТЕСТ-АДМИН правка';document.querySelector('#d_save').click()})()`);
-    await sleep(900);
-    const after=JSON.parse(await c.eval(`(()=>{go('2026-12-01');const cards=[...document.querySelectorAll('.card')];return JSON.stringify({cards:cards.length,firstHw:(cards[0]||{}).textContent,title:document.querySelector('#ttl').textContent})})()`));
-    console.log('AFTER EDIT',JSON.stringify({cards:after.cards,firstHw:after.firstHw.slice(0,80),title:after.title}));
+    // правка ДЗ на 23 ноября (шаблонный день)
+    await c.eval(`go('2026-11-23')`);
+    await sleep(400);
+    const pencils=JSON.parse(await c.eval(`(()=>JSON.stringify({edit:document.querySelectorAll('[data-aedit]').length,hw:document.querySelectorAll('[data-ahw]').length,del:document.querySelectorAll('[data-adel]').length,add:document.querySelectorAll('[data-aadd]').length}))()`));
+    console.log('ADMIN CONTROLS',JSON.stringify(pencils));
+    await c.shot(path.join(OUT,'admin-inline.png'));
+    await c.eval(`document.querySelector('[data-ahw="0"]').click()`);
+    await sleep(400);
+    const hwSheet=await c.eval(`!!document.querySelector('#h_txt')`);
+    console.log('hw sheet:',hwSheet);
+    await c.eval(`(()=>{document.querySelector('#h_txt').value='ТЕСТ-АДМИН правка';document.querySelector('#h_save').click()})()`);
+    await sleep(700);
+    const after=JSON.parse(await c.eval(`(()=>{const cards=[...document.querySelectorAll('.card')];return JSON.stringify({cards:cards.length,firstHw:(cards[0]||{}).textContent,hwText:(document.querySelector('.hw')||{}).textContent})})()`));
+    console.log('AFTER HW EDIT',JSON.stringify({cards:after.cards,hwText:String(after.hwText||'').slice(0,60)}));
     const rawPosts=JSON.parse(await c.eval(`JSON.stringify(window.__posts)`));
-    console.log('captured posts:',rawPosts.length);
+    console.log('captured sched posts:',rawPosts.length);
     if(rawPosts.length){
       const plain=decSched(rawPosts[rawPosts.length-1]);
       console.log('SCHED PAYLOAD day:',plain.days[0].date,'hw0:',plain.days[0].lessons[0]&&plain.days[0].lessons[0].hw);
       console.log('SCHED plaintext leak on wire:',String(rawPosts[rawPosts.length-1]).indexOf('ТЕСТ')>=0);
     }
 
-    // пользователи
-    await c.eval(`(()=>{document.querySelector('#chatBtn').click()})()`);
+    // удаление урока
+    const beforeDel=await c.eval(`document.querySelectorAll('.card').length`);
+    await c.eval(`document.querySelectorAll('[data-adel]')[document.querySelectorAll('[data-adel]').length-1].click()`);
+    await sleep(700);
+    const afterDel=await c.eval(`document.querySelectorAll('.card').length`);
+    console.log('DELETE LESSON',beforeDel+' -> '+afterDel);
+
+    // добавление урока
+    await c.eval(`document.querySelector('[data-aadd]').click()`);
+    await sleep(400);
+    await c.eval(`(()=>{document.querySelector('#l_sub').value='Тест-предмет';document.querySelector('#l_time').value='15:00-15:40';document.querySelector('#l_save').click()})()`);
+    await sleep(700);
+    const addRes=JSON.parse(await c.eval(`(()=>{const cards=[...document.querySelectorAll('.card')];return JSON.stringify({count:cards.length,last:(cards[cards.length-1]||{}).textContent.slice(0,60)})})()`));
+    console.log('ADD LESSON',JSON.stringify(addRes));
+
+    // вход в чат по коду + ник
+    await c.eval(`openChat()`);
     await sleep(400);
     if(await c.eval(`!!document.querySelector('#u_code')`)){
       await c.eval(`(()=>{document.querySelector('#u_code').value=${JSON.stringify(CODE)};document.querySelector('#u_go').click()})()`);
@@ -103,6 +135,22 @@ function decSched(str){
         await sleep(1200);
       }
     }
+    console.log('chat ready:',await c.eval(`!!chat.key`));
+
+    // очистка чата из админки
+    await c.eval(`adminEntry()`);
+    await sleep(400);
+    await c.eval(`document.querySelector('#a_clear').click()`);
+    await sleep(400);
+    console.log('clear confirm shown:',await c.eval(`!!document.querySelector('#cf_ok')`));
+    await c.eval(`document.querySelector('#cf_ok').click()`);
+    await sleep(1200);
+    console.log('chat msgs after clear:',await c.eval(`chat.msgs.length`));
+    const cposts=JSON.parse(await c.eval(`JSON.stringify(window.__cposts)`));
+    const clearPost=cposts.map(p=>{try{return decChat(p.body)}catch(e){return null}}).filter(x=>x&&x.op==='clear');
+    console.log('clear op published:',clearPost.length>0);
+
+    // пользователи
     await c.eval(`usersSheet()`);
     await sleep(1200);
     const users=await c.eval(`document.querySelector('#usersBox').textContent.replace(/\\s+/g,' ').trim().slice(0,160)`);

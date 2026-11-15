@@ -134,7 +134,7 @@ node tools/dev-server.js               # http://127.0.0.1:8123
 node tools/check.js                    # вёрстка + офлайн (нужен Chrome)
 node tools/chat-check.js "код"         # вход, отправка, шифрование на сервере
 node tools/ws-check.js "код"           # живая доставка, правка/удаление сообщений
-node tools/admin-check.js "код" "код2" # админка, правки расписания, шаблон
+node tools/admin-check.js "код" "код2" # админка: правка урока/ДЗ в дне, шаблон, очистка чата
 node tools/presence-check.js "код"     # список пользователей
 node tools/topic-check.js "код"        # тема чата совпадает, история пуста (без отправки)
 ```
