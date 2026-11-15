@@ -89,6 +89,9 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .chatHead{display:flex;align-items:center;gap:8px;margin:0 0 10px}
 .chatHead b{font-size:19px;flex:1;min-width:0}
 .chatHead span{font-size:12px;color:var(--mut);text-align:right;white-space:nowrap}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:10px 6px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font-size:13.5px;cursor:pointer}
+.seg button.on{background:linear-gradient(135deg,var(--a),var(--b));color:var(--bg);font-weight:700;border-color:transparent}
 .chatPresence{font-size:12px;color:var(--a);margin:-6px 0 8px;min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xbtn{width:34px;height:34px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.08);display:grid;place-items:center;cursor:pointer;flex:none}
 .xbtn:active{transform:scale(.92)}
@@ -255,6 +258,7 @@ let lastUpdated=0;
 /* ---------- расписание ---------- */
 
 function sources(){
+  if(SRC==='ntfy')return [];
   const custom=(ls.get('data_url','')||'').trim();
   return custom?[custom,...DEFAULT_SOURCES]:DEFAULT_SOURCES.slice();
 }
@@ -303,7 +307,7 @@ async function sync(manual){
     const urls=sources();
     const res=await Promise.all(urls.map(u=>fetchJSON(u)));
     const ok=res.filter(r=>r.kind==='ok');
-    const nt=await fetchNtfyData();
+    const nt=(SRC==='gh')?null:await fetchNtfyData();
     const pool=ok.map(r=>r.data);
     if(nt)pool.push(nt);
     if(pool.length){
@@ -551,7 +555,7 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=16;
+const APP_CODE=17;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
@@ -571,6 +575,8 @@ try{schedOut=JSON.parse(ls.get('sched_out','[]'))||[]}catch(e){schedOut=[]}
 let schedSince=ls.get('sched_since','');
 
 const NOTIF={hw:ls.get('notif_hw','1')==='1',chat:ls.get('notif_chat','1')==='1'};
+let SRC=ls.get('src_mode','auto');
+if(['auto','gh','ntfy'].indexOf(SRC)<0)SRC='auto';
 const NATIVE=(typeof window.DnevnikNative!=='undefined')?window.DnevnikNative:null;
 
 function uuid(){
@@ -1275,9 +1281,16 @@ function notifSheet(){
     '<div class="sw"><span>Домашнее задание</span><button class="tg'+(NOTIF.hw?' on':'')+'" id="n_hw"></button></div>'+
     '<div class="sw"><span>Сообщения в чате</span><button class="tg'+(NOTIF.chat?' on':'')+'" id="n_chat"></button></div>'+
     (NATIVE&&NATIVE.requestBattery?'<div class="bar"><button class="btn g" id="n_bg">Разрешить работу в фоне</button></div>':'')+
+    (NATIVE&&NATIVE.notify?'<div class="bar"><button class="btn g" id="n_test">Проверить уведомление</button></div>':'')+
     '<div class="chatNote">'+(NATIVE?'Приложение проверяет обновления в фоне — уведомления приходят, даже когда оно закрыто. Если телефон «усыпляет» приложение, нажмите «Разрешить работу в фоне».':'Уведомления приходят, пока сайт открыт (в том числе в фоновой вкладке).')+'</div>');
   bindClose();
   if($('#n_bg'))$('#n_bg').onclick=()=>{try{NATIVE.requestBattery()}catch(e){}};
+  if($('#n_test'))$('#n_test').onclick=async()=>{
+    const ok=await askNotif();
+    if(!ok){toast('Разрешите уведомления в настройках Android');return}
+    try{NATIVE.notify('Дневник','Уведомления работают')}catch(e){}
+    toast('Уведомление отправлено');
+  };
   const syncBg=()=>{try{if(NATIVE&&NATIVE.setBackground) NATIVE.setBackground(NOTIF.hw||NOTIF.chat)}catch(e){}};
   $('#n_hw').onclick=async()=>{
     NOTIF.hw=!NOTIF.hw;ls.set('notif_hw',NOTIF.hw?'1':'0');
@@ -1599,7 +1612,12 @@ function infoSheet(){
      '<div class="row"><span>Состояние</span><b>'+state+'</b></div>'+
      '<div class="row"><span>Имя в чате</span><b>'+esc(chat.nick||'—')+'</b></div>'+
    '</div>'+
-   '<div class="fld"><label>Свой адрес данных (необязательно)</label><input class="in" id="s_url" placeholder="https://.../data.json" value="'+esc(custom)+'" autocomplete="url"></div>'+
+    '<div class="fld"><label>Свой адрес данных (необязательно)</label><input class="in" id="s_url" placeholder="https://.../data.json" value="'+esc(custom)+'" autocomplete="url"></div>'+
+    '<div class="fld"><label>Источник расписания</label><div class="seg" id="s_src">'+
+      '<button data-m="auto"'+(SRC==='auto'?' class="on"':'')+'>Авто</button>'+
+      '<button data-m="gh"'+(SRC==='gh'?' class="on"':'')+'>GitHub</button>'+
+      '<button data-m="ntfy"'+(SRC==='ntfy'?' class="on"':'')+'>ntfy</button>'+
+    '</div></div>'+
    '<div class="bar"><button class="btn" id="s_sync">Обновить сейчас</button><button class="btn g" id="s_nick">Имя в чате</button></div>'+
     '<div class="bar"><button class="btn g" id="s_notif">Уведомления</button><button class="btn g" id="s_admin">Админ</button></div>'+
     '<div class="bar"><button class="btn" id="s_update" style="display:none">Обновить приложение</button></div>'+
@@ -1611,6 +1629,14 @@ function infoSheet(){
   $('#s_nick').onclick=nickSheet;
   $('#s_notif').onclick=notifSheet;
   $('#s_admin').onclick=adminEntry;
+  $('#s_src').onclick=e=>{
+    const b=e.target.closest('[data-m]');
+    if(!b)return;
+    SRC=b.dataset.m;ls.set('src_mode',SRC);
+    toast(SRC==='gh'?'Источник: GitHub':(SRC==='ntfy'?'Источник: ntfy':'Источник: авто'));
+    sync(true);
+    infoSheet();
+  };
   renderInfoUpdate();
   $('#s_update').onclick=()=>{if(UPDATE)location.href=SITE+'Dnevnik.apk?t='+Date.now()};
   bindClose();
