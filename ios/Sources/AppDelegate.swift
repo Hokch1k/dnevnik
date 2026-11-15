@@ -66,7 +66,7 @@ final class FileServer {
     private(set) var port: UInt16 = 0
 
     private init() {
-        root = Bundle.main.bundleURL.appendingPathComponent("www", isDirectory: true)
+        root = Bundle.main.bundleURL
     }
 
     func start() -> UInt16 {

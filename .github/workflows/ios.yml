@@ -15,9 +15,9 @@ jobs:
 
       - name: Prepare web assets
         run: |
-          mkdir -p ios/Resources/www
-          cp index.html data.json manifest.json sw.js icon-192.png icon-512.png icon.svg ios/Resources/www/
-          cp icon-192.png ios/Resources/www/apple-touch-icon.png
+          mkdir -p ios/Resources
+          cp index.html data.json manifest.json sw.js icon-192.png icon-512.png icon.svg ios/Resources/
+          cp icon-192.png ios/Resources/apple-touch-icon.png
 
       - name: Generate Xcode project
         run: |
