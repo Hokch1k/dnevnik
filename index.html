@@ -303,9 +303,12 @@ async function sync(manual){
     const urls=sources();
     const res=await Promise.all(urls.map(u=>fetchJSON(u)));
     const ok=res.filter(r=>r.kind==='ok');
-    if(ok.length){
+    const nt=await fetchNtfyData();
+    const pool=ok.map(r=>r.data);
+    if(nt)pool.push(nt);
+    if(pool.length){
       let best=null,bestTs=0;
-      ok.forEach(r=>{const t=tsOf(r.data);if(t>=bestTs){best=r.data;bestTs=t}});
+      pool.forEach(d=>{const t=tsOf(d);if(t>=bestTs){best=d;bestTs=t}});
       const changed=JSON.stringify(best)!==JSON.stringify(S.data);
       S.data=best;
       if(!S.data.days)S.data.days=[];
@@ -535,12 +538,13 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=14;
+const APP_CODE=15;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
 const SCHED_KEY='YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=';
 const SCHED_TOPIC='dnevnikSchedHsPJjwoQ5_zP';
+const DATA_TOPIC='dnevnikDataHsPJjwoQ5z';
 
 const chat={key:null,topic:'',ptopic:'',nick:ls.get('chat_nick',''),msgs:[],pres:{},typing:{},since:ls.get('chat_since',''),psince:ls.get('pres_since',''),out:[],timer:0,presTimer:0,state:'',open:false,unread:0};
 try{chat.msgs=JSON.parse(ls.get('chat_msgs','[]'))||[]}catch(e){chat.msgs=[]}
@@ -589,6 +593,40 @@ async function getSchedKey(){
 }
 async function schedEnc(obj){return encWith(await getSchedKey(),obj)}
 async function schedDec(str){return decWith(await getSchedKey(),str)}
+
+let dataSince=ls.get('data_since','');
+let dataAt=0;
+async function fetchNtfyData(){
+  if(Date.now()-dataAt<600000)return null;
+  dataAt=Date.now();
+  try{
+    const q=dataSince?('&since='+encodeURIComponent(dataSince)):'&since=all';
+    const r=await fetch(CHAT_HOST+'/'+DATA_TOPIC+'/json?poll=1'+q,{cache:'no-store'});
+    if(!r.ok)return null;
+    const lines=(await r.text()).split('\n').filter(Boolean);
+    const groups={};
+    let best=null;
+    for(const line of lines){
+      let ev;try{ev=JSON.parse(line)}catch(e){continue}
+      if(ev.event!=='message'||!ev.message)continue;
+      if(ev.id)dataSince=ev.id;
+      let part;try{part=JSON.parse(ev.message)}catch(e){continue}
+      if(!part||!part.gid||typeof part.i!=='number'||!part.total)continue;
+      const g=groups[part.gid]||(groups[part.gid]={n:part.total,parts:{}});
+      g.parts[part.i]=String(part.data||'');
+    }
+    for(const gid in groups){
+      const g=groups[gid];
+      if(Object.keys(g.parts).length!==g.n)continue;
+      let payload='';
+      for(let i=0;i<g.n;i++)payload+=g.parts[i]||'';
+      const u=await schedDec(payload);
+      if(u&&Array.isArray(u.days)&&(!best||tsOf(u)>=tsOf(best)))best=u;
+    }
+    ls.set('data_since',dataSince||'');
+    return best;
+  }catch(e){return null}
+}
 
 async function chatUnlock(code){
   const check=b64(await deriveBits(code,CHAT_SALT_V));

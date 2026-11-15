@@ -39,6 +39,7 @@ public class NotifyService extends Service {
     private static final long ACTIVE_GRACE = 150000L;
     private static final String HW_URL = "https://raw.githubusercontent.com/Hokch1k/dnevnik/main/data.json";
     private static final String SCHED_TOPIC = "dnevnikSchedHsPJjwoQ5_zP";
+    private static final String DATA_TOPIC = "dnevnikDataHsPJjwoQ5z";
     private static final String SCHED_KEY = "YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=";
 
     private Thread worker;
@@ -94,7 +95,7 @@ public class NotifyService extends Service {
             } catch (Exception ignored) {
             }
             try {
-                if ("1".equals(hwOn)) pollHw();
+                if ("1".equals(hwOn)) pollData();
             } catch (Exception ignored) {
             }
             try {
@@ -143,6 +144,76 @@ public class NotifyService extends Service {
             String nick = m.optString("n", "Ученик");
             notifyUser("Чат класса", nick + ": " + text);
         }
+    }
+
+    private void pollData() throws Exception {
+        boolean got = false;
+        try {
+            got = pollNtfyData();
+        } catch (Exception ignored) {
+        }
+        if (!got) pollHw();
+    }
+
+    /** Расписание из ntfy: сообщения-части, расшифровка ключом расписания. Работает там, где GitHub закрыт. */
+    private boolean pollNtfyData() throws Exception {
+        String url = "https://ntfy.sh/" + DATA_TOPIC + "/json?poll=1&since=12h";
+        java.util.HashMap<String, JSONObject> groups = new java.util.HashMap<>();
+        for (String line : http(url).split("\n")) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+            JSONObject ev;
+            try {
+                ev = new JSONObject(line);
+            } catch (Exception e) {
+                continue;
+            }
+            if (!"message".equals(ev.optString("event"))) continue;
+            JSONObject part;
+            try {
+                part = new JSONObject(ev.optString("message"));
+            } catch (Exception e) {
+                continue;
+            }
+            String gid = part.optString("gid");
+            if (gid.isEmpty()) continue;
+            JSONObject g = groups.get(gid);
+            if (g == null) {
+                g = new JSONObject();
+                g.put("n", part.optInt("total"));
+                g.put("parts", new JSONObject());
+                groups.put(gid, g);
+            }
+            try {
+                g.getJSONObject("parts").put(String.valueOf(part.optInt("i")), part.optString("data"));
+            } catch (Exception ignored) {
+            }
+        }
+        String best = null, bestUpd = "";
+        for (JSONObject g : groups.values()) {
+            JSONObject parts = g.optJSONObject("parts");
+            int n = g.optInt("n");
+            if (parts == null || parts.length() != n) continue;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < n; i++) sb.append(parts.optString(String.valueOf(i)));
+            JSONObject u = decrypt(sb.toString(), SCHED_KEY);
+            if (u == null || u.optJSONArray("days") == null) continue;
+            String upd = u.optString("updated");
+            if (best == null || upd.compareTo(bestUpd) > 0) {
+                best = u.toString();
+                bestUpd = upd;
+            }
+        }
+        if (best == null) return false;
+        prefs().edit().putString("prefetch_data", best).putLong("prefetch_ts", System.currentTimeMillis()).apply();
+        String prev = pref("svc_hw", "");
+        if (prev.isEmpty()) {
+            prefs().edit().putString("svc_hw", bestUpd).apply();
+        } else if (!bestUpd.equals(prev)) {
+            prefs().edit().putString("svc_hw", bestUpd).apply();
+            notifyUser("Домашка обновилась", "Открой Дневник, чтобы посмотреть");
+        }
+        return true;
     }
 
     private void pollHw() throws Exception {
