@@ -482,9 +482,7 @@ function go(s){dir=s>S.sel?'r':'l';S.sel=s;render()}
 $('#tabs').onclick=e=>{const b=e.target.closest('[data-d]');if(b)go(b.dataset.d)};
 $('#prevWeek').onclick=()=>go(add(S.sel,-7));
 $('#nextWeek').onclick=()=>go(add(S.sel,7));
-let tx=0;const M=$('#list');
-M.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
-M.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>60)go(add(S.sel,dx<0?1:-1))},{passive:true});
+const M=$('#list');
 M.addEventListener('click',e=>{
   const a=e.target.closest('[data-aedit],[data-ahw],[data-adel],[data-aadd],[data-agdz]');
   if(!a)return;
@@ -521,7 +519,7 @@ function clipFiles(e){
 $('#sheet').addEventListener('paste',e=>{
   if(!chat.open)return;
   const f=clipFiles(e);
-  if(f){e.preventDefault();chatSendFiles(f)}
+  if(f){e.preventDefault();showAttachPreview(f)}
 });
 
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2600)}
@@ -536,7 +534,7 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=12;
+const APP_CODE=13;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';

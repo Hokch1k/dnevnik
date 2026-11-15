@@ -73,6 +73,25 @@ class Client{
     await sleep(1200);
     console.log('sent after confirm:',await c.eval(`window.__puts.length===1`));
 
+    // Ctrl+V на компьютере: тоже сначала предпросмотр
+    await c.eval(`(async()=>{
+      const cv=document.createElement('canvas');cv.width=40;cv.height=30;cv.getContext('2d').fillRect(0,0,40,30);
+      const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+      const dt=new DataTransfer();dt.items.add(new File([blob],'paste.png',{type:'image/png'}));
+      const inp=document.querySelector('#chatInput');inp.focus();
+      inp.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));
+    })()`);
+    await sleep(400);
+    console.log('paste preview:',await c.eval(`document.querySelector('#attachPreview').style.display!=='none'`));
+    console.log('paste not sent yet:',await c.eval(`window.__puts.length===1`));
+    await c.eval(`document.querySelector('#ap_cancel').click()`);
+    await sleep(200);
+
+    // свайп по списку не меняет день
+    await c.eval(`(go('2026-11-16'),window.__selBefore=S.sel)`);
+    const swipe=await c.eval(`(()=>{const L=document.querySelector('#list');try{L.dispatchEvent(new Event('touchstart',{bubbles:true}));L.dispatchEvent(new Event('touchend',{bubbles:true}))}catch(e){}return S.sel})()`);
+    console.log('swipe keeps day:',swipe===await c.eval(`window.__selBefore`));
+
     // эхо своего сообщения с сервера не должно дублировать
     await c.eval(`(async()=>{
       const m=chat.msgs[chat.msgs.length-1];

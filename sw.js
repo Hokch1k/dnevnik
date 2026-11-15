@@ -1,4 +1,4 @@
-const CACHE='dnevnik-v8';
+const CACHE='dnevnik-v9';
 const SHELL=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./data.json'];
 
 self.addEventListener('install',e=>{
