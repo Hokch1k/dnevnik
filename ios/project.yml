@@ -1,0 +1,36 @@
+name: Dnevnik
+options:
+  bundleIdPrefix: ru.dnevnik
+  deploymentTarget:
+    iOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  Dnevnik:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+        excludes:
+          - Info.plist
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ru.dnevnik.app
+        PRODUCT_NAME: Dnevnik
+        INFOPLIST_FILE: Sources/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "2.7"
+        CURRENT_PROJECT_VERSION: "17"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+schemes:
+  Dnevnik:
+    build:
+      targets:
+        Dnevnik: all
+    run:
+      config: Release

@@ -1,0 +1,43 @@
+name: iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare web assets
+        run: |
+          mkdir -p ios/Resources/www
+          cp index.html data.json manifest.json sw.js icon-192.png icon-512.png icon.svg ios/Resources/www/
+          cp icon-192.png ios/Resources/www/apple-touch-icon.png
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          cd ios
+          xcodegen generate
+
+      - name: Build unsigned app
+        run: |
+          cd ios
+          xcodebuild -project Dnevnik.xcodeproj -scheme Dnevnik -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO clean build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p out/Payload
+          cp -R ios/build/Build/Products/Release-iphoneos/Dnevnik.app out/Payload/
+          cd out
+          zip -qry Dnevnik-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dnevnik-unsigned-ipa
+          path: out/Dnevnik-unsigned.ipa
