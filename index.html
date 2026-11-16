@@ -126,6 +126,30 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .addLesson{width:100%;padding:13px;border-radius:16px;border:1px dashed rgba(124,199,255,.45);background:rgba(124,199,255,.08);color:var(--a);font-size:15px;font-weight:700;cursor:pointer;margin:2px 0 12px}
 .addLesson:active{transform:scale(.985)}
 .sheet textarea.in{min-height:96px;resize:vertical;font-family:inherit;line-height:1.4}
+.replyBar{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(124,199,255,.1);border:1px solid rgba(124,199,255,.3);font-size:13px}
+.replyBar .rbText{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+.replyBar b{color:var(--a)}
+.quote{max-width:100%;font-size:12.5px;color:var(--mut);border-left:3px solid var(--a);padding:2px 8px;margin-bottom:5px;background:rgba(124,199,255,.08);border-radius:0 8px 8px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quote b{display:block;color:var(--a);font-size:11.5px;margin-bottom:1px}
+.code{margin:6px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:rgba(4,10,24,.65)}
+.codeHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 9px;background:rgba(255,255,255,.07);font-size:11px;color:var(--mut)}
+.copyBtn{border:0;background:rgba(255,255,255,.12);color:var(--ink);border-radius:7px;padding:3px 9px;font-size:11.5px;cursor:pointer}
+.code pre{margin:0;padding:9px;overflow-x:auto}
+.code code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.45;white-space:pre}
+.attAudio{width:100%;max-width:260px;display:block;margin-bottom:4px}
+.attLinks{display:flex;gap:10px;font-size:12.5px;margin-bottom:4px}
+.attLinks a{color:var(--a)}
+.aiModel{display:inline-block;margin-left:6px;font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(182,156,255,.2);color:#d9c9ff}
+.msg.ia .b{background:rgba(182,156,255,.14);border:1px solid rgba(182,156,255,.3)}
+.msg.anon .meta{color:#ffd6a8}
+.b.pending{opacity:.6;font-style:italic}
+.attBtn.on{background:rgba(124,199,255,.35);border-color:var(--a)}
+.banScreen{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:#8e1b1b;color:#fff;padding:24px;text-align:center}
+.banScreen .banBox{max-width:340px}
+.banIcon{font-size:44px;margin-bottom:10px}
+.banBox b{font-size:24px;display:block;margin-bottom:10px}
+.banWhy{font-size:16px;opacity:.95;margin-bottom:10px}
+.banBy{font-size:13px;opacity:.85;margin-bottom:18px}
 .msg .b{cursor:default}
 .msg .b:empty{display:none}
 .msg .b.editing{padding:7px;background:rgba(10,18,44,.6)}
@@ -199,6 +223,7 @@ video.att{width:100%;max-width:230px}
 
 <div class="sheet" id="sheet"></div>
 <div class="toast" id="toast"></div>
+<div id="banScreen" class="banScreen"><div class="banBox"><div class="banIcon">⛔</div><b>Вы забанены!</b><div class="banWhy" id="banWhy">без причины</div><div class="banBy">Забанил: <span id="banBy">админ</span></div><button class="btn g" id="banInfo">Подробнее</button></div></div>
 
 <!--SEED_START-->
 <script type="application/json" id="seed">{"updated":"2026-11-15T22:15:00+03:00","week":"2026-11-16","days":[{"date":"2026-11-16","off":false,"lessons":[{"subject":"ВД Разговоры о важном","time":"8:30-9:10","hw":"","noHw":true},{"subject":"Физкультура","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Физика","time":"10:20-11:00","hw":"Закончить оформление, повторить пп. 23"},{"subject":"Рус. язык","time":"11:20-12:00","hw":"Упр. 139, с. 62"},{"subject":"Алгебра","time":"12:20-13:00","hw":"№ 385, 386, 401 (а)"},{"subject":"Биология","time":"13:20-14:00","hw":"Карточка задания «Папортникообразные».docx"},{"subject":"ВиС","time":"14:10-14:50","hw":""},{"subject":"ВД Новгородика","time":"14:55-15:35","hw":"","noHw":true}]},{"date":"2026-11-17","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":"Составить кроссворд по п. 20-23 (не менее 15 слов), подготовиться к проверочной работе"},{"subject":"Литература","time":"10:20-11:00","hw":"Вопр. 2, 3, 4, 5, с. 194 (192), письменно"},{"subject":"География","time":"11:20-12:00","hw":"П. 15, вопросы"},{"subject":"Геометрия","time":"12:20-13:00","hw":"№ 163, 167, 169, 172"},{"subject":"Англ. язык","time":"13:20-14:00","hw":"с."},{"subject":"ЭК Формула питания","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-18","off":false,"lessons":[{"subject":"Физика","time":"8:30-9:10","hw":"Выполнить задания в тетради"},{"subject":"ИЗО","time":"9:20-10:00","hw":"","noHw":true},{"subject":"Рус. язык","time":"10:20-11:00","hw":""},{"subject":"История","time":"11:20-12:00","hw":""},{"subject":"Музыка","time":"12:20-13:00","hw":"","noHw":true},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"ВД Спорт.клуб: Бадминтон","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-19","off":false,"lessons":[{"subject":"Геометрия","time":"8:30-9:10","hw":""},{"subject":"Англ. язык","time":"9:20-10:00","hw":"с."},{"subject":"Труд (технология)","time":"10:20-11:00","hw":"П. 3.2"},{"subject":"Труд (технология)","time":"11:20-12:00","hw":""},{"subject":"Литература","time":"12:20-13:00","hw":""},{"subject":"ЭК Занимат. русский","time":"13:20-14:00","hw":""},{"subject":"ВД Россия — мои горизонты","time":"14:10-14:50","hw":"","noHw":true}]},{"date":"2026-11-20","off":false,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10","hw":""},{"subject":"История","time":"9:20-10:00","hw":""},{"subject":"Физкультура","time":"10:20-11:00","hw":""},{"subject":"Информатика","time":"11:20-12:00","hw":""},{"subject":"География","time":"12:20-13:00","hw":"П. 16, вопросы"},{"subject":"Алгебра","time":"13:20-14:00","hw":""},{"subject":"Англ. язык","time":"14:10-14:50","hw":"с."}]},{"date":"2026-11-21","off":true,"lessons":[]},{"date":"2026-11-22","off":true,"lessons":[]}],"template":[{"wd":1,"lessons":[{"subject":"ВД Разговоры о важном","time":"8:30-9:10","noHw":true},{"subject":"Физкультура","time":"9:20-10:00","noHw":true},{"subject":"Физика","time":"10:20-11:00"},{"subject":"Рус. язык","time":"11:20-12:00"},{"subject":"Алгебра","time":"12:20-13:00"},{"subject":"Биология","time":"13:20-14:00"},{"subject":"ВиС","time":"14:10-14:50"},{"subject":"ВД Новгородика","time":"14:55-15:35","noHw":true}]},{"wd":2,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10"},{"subject":"История","time":"9:20-10:00"},{"subject":"Литература","time":"10:20-11:00"},{"subject":"География","time":"11:20-12:00"},{"subject":"Геометрия","time":"12:20-13:00"},{"subject":"Англ. язык","time":"13:20-14:00"},{"subject":"ЭК Формула питания","time":"14:10-14:50","noHw":true}]},{"wd":3,"lessons":[{"subject":"Физика","time":"8:30-9:10"},{"subject":"ИЗО","time":"9:20-10:00","noHw":true},{"subject":"Рус. язык","time":"10:20-11:00"},{"subject":"История","time":"11:20-12:00"},{"subject":"Музыка","time":"12:20-13:00","noHw":true},{"subject":"Алгебра","time":"13:20-14:00"},{"subject":"ВД Спорт.клуб: Бадминтон","time":"14:10-14:50","noHw":true}]},{"wd":4,"lessons":[{"subject":"Геометрия","time":"8:30-9:10"},{"subject":"Англ. язык","time":"9:20-10:00"},{"subject":"Труд (технология)","time":"10:20-11:00"},{"subject":"Труд (технология)","time":"11:20-12:00"},{"subject":"Литература","time":"12:20-13:00"},{"subject":"ЭК Занимат. русский","time":"13:20-14:00"},{"subject":"ВД Россия — мои горизонты","time":"14:10-14:50","noHw":true}]},{"wd":5,"lessons":[{"subject":"Рус. язык","time":"8:30-9:10"},{"subject":"История","time":"9:20-10:00"},{"subject":"Физкультура","time":"10:20-11:00"},{"subject":"Информатика","time":"11:20-12:00"},{"subject":"География","time":"12:20-13:00"},{"subject":"Алгебра","time":"13:20-14:00"},{"subject":"Англ. язык","time":"14:10-14:50"}]}]}</script>
@@ -373,7 +398,12 @@ function applyPrefetch(){
     if(Array.isArray(arr)){
       let changed=false;
       arr.forEach(u=>{
-        if(u&&Array.isArray(u.days))u.days.forEach(dd=>{if(dd&&dd.date){OV[dd.date]=dd;changed=true}});
+        if(u&&u.op==='bg'){
+          if(u.url)ls.set('bg_global',u.url);else ls.del('bg_global');
+          applyBackground();
+          return;
+        }
+      if(u&&Array.isArray(u.days))u.days.forEach(dd=>{if(dd&&dd.date){OV[dd.date]=dd;changed=true}});
         if(u&&Array.isArray(u.template))u.template.forEach(t=>{
           if(!t||!t.wd)return;
           S.data.template=S.data.template||[];
@@ -555,15 +585,16 @@ const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=17;
+const APP_CODE=18;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
 const SCHED_KEY='YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=';
 const SCHED_TOPIC='dnevnikSchedHsPJjwoQ5_zP';
 const DATA_TOPIC='dnevnikDataHsPJjwoQ5z';
+const AI_TOPIC='dnevnikAiHsPJjwoQ5z';
 
-const chat={key:null,topic:'',ptopic:'',nick:ls.get('chat_nick',''),msgs:[],pres:{},typing:{},since:ls.get('chat_since',''),psince:ls.get('pres_since',''),out:[],timer:0,presTimer:0,state:'',open:false,unread:0};
+const chat={key:null,topic:'',ptopic:'',nick:ls.get('chat_nick',''),msgs:[],pres:{},typing:{},since:ls.get('chat_since',''),psince:ls.get('pres_since',''),out:[],timer:0,presTimer:0,state:'',open:false,unread:0,reply:null,anon:false,bans:{},mutes:{},aiCool:0};
 try{chat.msgs=JSON.parse(ls.get('chat_msgs','[]'))||[]}catch(e){chat.msgs=[]}
 try{chat.out=JSON.parse(ls.get('chat_out','[]'))||[]}catch(e){chat.out=[]}
 try{chat.pres=JSON.parse(ls.get('chat_pres','{}'))||{}}catch(e){chat.pres={}}
@@ -701,6 +732,34 @@ async function applyChatObject(m){
     if(m.d&&m.d!==DEV)chat.typing[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now()};
     return false;
   }
+  if(m.op==='mute'||m.op==='ban'){
+    const list=m.op==='mute'?chat.mutes:chat.bans;
+    if(m.d){
+      if(m.on)list[m.d]={n:m.n||'Ученик',ts:m.ts||Date.now(),by:m.by||'админ',reason:m.reason||''};
+      else delete list[m.d];
+      applyModState();
+    }
+    return false;
+  }
+  if(m.op==='kick'){
+    if(m.d&&m.d===DEV){
+      toast('Вас исключили из чата');
+      try{if(NATIVE&&NATIVE.exitApp)NATIVE.exitApp()}catch(e){}
+      setTimeout(()=>{try{window.close()}catch(e){}},300);
+    }
+    return false;
+  }
+  if(m.op==='bg'){
+    if(m.url){ls.set('bg_global',m.url)}else{ls.del('bg_global')}
+    applyBackground();
+    return false;
+  }
+  if(m.op==='ai'){
+    const msg=chat.msgs.find(x=>x.u===m.id);
+    if(msg){msg.t=String(m.t||'');msg.pending=false;msg.model=m.model||'';chatSave();return true}
+    chat.msgs.push({u:m.id||uuid(),d:'ai',n:'Gemini',t:String(m.t||''),ts:Date.now(),model:m.model||''});
+    return 'new';
+  }
   if(m.op==='del'){
     const i=chat.msgs.findIndex(x=>x.u===m.u);
     if(i>=0){chat.msgs.splice(i,1);return true}
@@ -717,9 +776,19 @@ async function applyChatObject(m){
     return false;
   }
   if(m.u){
-    if(!chat.msgs.some(x=>x.u===m.u)){
+    const ex=chat.msgs.find(x=>x.u===m.u);
+    if(ex){
+      if(m.d==='ai'&&ex.pending){
+        ex.t=String(m.t||'');ex.pending=false;ex.model=m.model||'';
+        return true;
+      }
+      return false;
+    }
+    {
       const o={u:m.u,d:m.d,n:m.n||'Ученик',t:m.t,ts:m.ts||Date.now()};
       if(m.att)o.att=m.att;
+      if(m.rt)o.rt=m.rt;
+      if(m.anon)o.anon=true;
       chat.msgs.push(o);
       return 'new';
     }
@@ -901,23 +970,43 @@ function renderChatMessages(scroll){
   bindMsgEdit();
   if(scroll)box.scrollTop=box.scrollHeight;
 }
+function fmtText(t){
+  const s=String(t||'');
+  const re=/```([a-z0-9#+._-]*)\n([\s\S]*?)```/gi;
+  let out='',last=0,m;
+  while((m=re.exec(s))){
+    out+=esc(s.slice(last,m.index)).replace(/\n/g,'<br>');
+    out+='<div class="code"><div class="codeHead"><span>'+esc(m[1]||'код')+'</span><button class="copyBtn" data-copy="1">Копировать</button></div><pre><code>'+esc(m[2].replace(/\n$/,''))+'</code></pre></div>';
+    last=re.lastIndex;
+  }
+  return out+esc(s.slice(last)).replace(/\n/g,'<br>');
+}
 function msgHtml(m){
   const me=m.d===DEV;
+  const isAi=m.d==='ai';
   let media='';
   if(m.att&&m.att.url){
     const ty=m.att.type||'';
     if(ty.indexOf('image/')===0)media='<img class="att" data-full="'+esc(m.att.url)+'" src="'+esc(m.att.url)+'" loading="lazy" alt="фото">';
     else if(ty.indexOf('video/')===0)media='<video class="att" controls preload="metadata" src="'+esc(m.att.url)+'"></video>';
+    else if(ty.indexOf('audio/')===0)media='<audio class="attAudio" controls preload="none" src="'+esc(m.att.url)+'"></audio>';
     else media='<a class="attFile" href="'+esc(m.att.url)+'" target="_blank" rel="noopener">'+esc(m.att.name||'файл')+'</a>';
+    if(ty.indexOf('image/')!==0&&ty.indexOf('audio/')!==0&&ty.indexOf('video/')!==0){
+      media+='<div class="attLinks"><a href="'+esc(m.att.url)+'" target="_blank" rel="noopener">Открыть</a><a href="'+esc(m.att.url)+'" download="'+esc(m.att.name||'file')+'">Скачать</a></div>';
+    }
   }
+  let quote='';
+  if(m.rt)quote='<div class="quote"><b>'+esc(m.rt.n||'')+'</b>'+esc(String(m.rt.t||'').slice(0,90))+'</div>';
   let body;
   if(chat.editU===m.u){
     body='<div class="b editing"><textarea id="msgEdit" maxlength="500">'+esc(m.t||'')+'</textarea>'+
       '<div class="editBar"><button class="mini" id="me_save">Сохранить</button><button class="mini g" id="me_cancel">Отмена</button></div></div>';
   }else{
-    body='<div class="b'+(m.edited?' edited':'')+'">'+esc(m.t||'')+'</div>';
+    body='<div class="b'+(m.edited?' edited':'')+(m.pending?' pending':'')+'">'+fmtText(m.t)+'</div>';
   }
-  return '<div class="msg'+(me?' me':'')+'" data-u="'+esc(m.u)+'">'+media+body+'<div class="meta">'+esc(me?'Ты':m.n)+' · '+fmtTime(m.ts)+'</div></div>';
+  const who=isAi?'Gemini':(m.anon?'Аноним':(me?'Ты':m.n));
+  const badge=(isAi&&m.model)?'<span class="aiModel">'+esc(m.model)+'</span>':'';
+  return '<div class="msg'+(me?' me':'')+(isAi?' ia':'')+(m.anon?' anon':'')+'" data-u="'+esc(m.u)+'">'+quote+media+body+'<div class="meta">'+esc(who)+badge+' · '+fmtTime(m.ts)+'</div></div>';
 }
 function bindMsgEdit(){
   if(!chat.editU)return;
@@ -955,7 +1044,14 @@ function showMsgMenu(u,anchor){
   const menu=document.createElement('div');
   menu.className='msgMenu';menu.id='msgMenu';
   const hasMedia=!!(m.att&&m.att.url);
-  menu.innerHTML=(hasMedia?'<button data-act="replace">Заменить фото</button>':'<button data-act="edit">Изменить</button>')+
+  const adminActs=ADMIN&&m.d!==DEV
+    ?'<button data-act="mute">'+(chat.mutes[m.d]?'Снять мут':'Мут')+'</button>'+
+     '<button data-act="ban">'+(chat.bans[m.d]?'Разбанить':'Забанить')+'</button>'+
+     '<button data-act="kick">Кикнуть</button>'
+    :'';
+  menu.innerHTML='<button data-act="reply">Ответить</button>'+
+    (hasMedia?'<button data-act="replace">Заменить фото</button>':'<button data-act="edit">Изменить</button>')+
+    adminActs+
     '<button data-act="del" class="dngr">Удалить</button>';
   document.body.appendChild(menu);
   const r=anchor.getBoundingClientRect();
@@ -973,6 +1069,16 @@ function showMsgMenu(u,anchor){
     if(act==='edit'){chat.editU=u;renderChatMessages()}
     else if(act==='replace')askReplace(u);
     else if(act==='del')chatDelete(u);
+    else if(act==='reply'){chat.reply={u:m.u,n:m.n,t:m.t};paintReplyBar();const i=$('#chatInput');if(i)i.focus()}
+    else if(act==='mute'){sendMod('mute',m)}
+    else if(act==='ban'){
+      if(chat.bans[m.d])sendMod('ban',m);
+      else banSheet(m);
+    }
+    else if(act==='kick'){
+      sendChatObject({op:'kick',d:m.d,n:m.n||'Ученик',ts:Date.now()}).catch(()=>{});
+      toast('Кикнут: '+(m.n||'ученик'));
+    }
   };
   setTimeout(()=>document.addEventListener('click',hideMsgMenu,{once:true}),0);
 }
@@ -1021,8 +1127,10 @@ function chatSheet(){
   openSheet(
     '<div class="chatHead"><b>Чат класса</b><span id="chatState">'+esc(chat.state||'…')+'</span>'+sheetClose('chat')+'</div>'+
     '<div class="chatPresence" id="chatPresence"></div>'+    '<div class="chatList" id="chatList"></div>'+
+    '<div class="replyBar" id="replyBar" style="display:none"></div>'+
     '<div class="attachPreview" id="attachPreview" style="display:none"></div>'+
-    '<div class="chatBar"><button class="attBtn" id="chatAttach" aria-label="Фото или видео"><svg viewBox="0 0 24 24"><path d="M8.5 13.5l6.2-6.2a3.2 3.2 0 014.5 4.5l-7.6 7.6a5.2 5.2 0 01-7.4-7.4l6.7-6.7"/></svg></button>'+
+    '<div class="chatBar"><button class="attBtn" id="chatAnon" aria-label="Анонимно"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></button>'+
+     '<button class="attBtn" id="chatAttach" aria-label="Фото или видео"><svg viewBox="0 0 24 24"><path d="M8.5 13.5l6.2-6.2a3.2 3.2 0 014.5 4.5l-7.6 7.6a5.2 5.2 0 01-7.4-7.4l6.7-6.7"/></svg></button>'+
     '<input class="in" id="chatInput" placeholder="Сообщение…" maxlength="500" autocomplete="off">'+
     '<button class="btn" id="chatSend" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 20.5L21.5 12 3 3.5v6.3l12 2.2-12 2.2z"/></svg></button></div>'+
     '<input type="file" id="chatFile" accept="image/*,video/*" multiple style="display:none">'+
@@ -1037,6 +1145,13 @@ function chatSheet(){
   paintPresence();
   presPoll();
   $('#chatSend').onclick=chatSend;
+  $('#chatAnon').onclick=()=>{
+    chat.anon=!chat.anon;
+    $('#chatAnon').classList.toggle('on',chat.anon);
+    toast(chat.anon?'Следующее сообщение — анонимно':'Анонимность выключена');
+  };
+  if(chat.anon)$('#chatAnon').classList.add('on');
+  paintReplyBar();
   $('#chatAttach').onclick=()=>{const f=$('#chatFile');if(f)f.click()};
   $('#chatFile').onchange=e=>{
     const files=e.target.files?Array.from(e.target.files):[];
@@ -1054,6 +1169,15 @@ function chatSheet(){
   const list=$('#chatList');
   list.addEventListener('click',e=>{
     if(lpFired){lpFired=false;return}
+    const cp=e.target.closest('[data-copy]');
+    if(cp){
+      const box=cp.closest('.code');
+      const code=box&&box.querySelector('code');
+      if(code){
+        try{navigator.clipboard.writeText(code.textContent||'');toast('Код скопирован')}catch(err){}
+      }
+      return;
+    }
     const img=e.target.closest('img.att');
     if(img){openLightbox(img.getAttribute('data-full')||img.src)}
   });
@@ -1127,19 +1251,103 @@ async function sendChatObject(m){
   }
 }
 
+let sendTimes=[];
+function canPost(){
+  if(chat.bans[DEV]){toast('Вы забанены в чате');return false}
+  if(chat.mutes[DEV]){toast('Вам запрещено писать (мут)');return false}
+  const now=Date.now();
+  sendTimes=sendTimes.filter(x=>now-x<10000);
+  if(sendTimes.length>=6){toast('Слишком часто — подождите пару секунд');return false}
+  sendTimes.push(now);
+  return true;
+}
+function popup(text){
+  try{toast(text)}catch(e){}
+}
+function paintReplyBar(){
+  const bar=$('#replyBar');
+  if(!bar)return;
+  if(!chat.reply){bar.style.display='none';bar.innerHTML='';return}
+  bar.style.display='';
+  bar.innerHTML='<span class="rbText"><b>'+esc(chat.reply.n||'')+'</b> '+esc(String(chat.reply.t||'').slice(0,80))+'</span><button class="mini g" id="rb_cancel">Отмена</button>';
+  $('#rb_cancel').onclick=()=>{chat.reply=null;paintReplyBar()};
+}
+function applyModState(){
+  if(chat.bans[DEV]){
+    toast('Вы забанены в чате');
+    if($('#sheet').classList.contains('open'))closeSheet();
+  }
+}
 async function chatSend(){
   const inp=$('#chatInput');
   if(!inp)return;
   const t=inp.value.trim();
   if(!t)return;
+  if(!canPost())return;
+  const ai=/^ai\s+([\s\S]+)/i.exec(t);
   inp.value='';
+  if(ai){sendAi(ai[1]);return}
   const m={u:uuid(),d:DEV,n:chat.nick||'Ученик',t:t.slice(0,500),ts:Date.now()};
+  if(chat.reply)m.rt={n:chat.reply.n||'Ученик',t:String(chat.reply.t||'').slice(0,120),u:chat.reply.u};
+  if(chat.anon)m.anon=true;
+  chat.reply=null;chat.anon=false;
+  paintReplyBar();
+  const ab=$('#chatAnon');if(ab)ab.classList.remove('on');
   chat.msgs.push(m);
   chatSave();
   renderChatMessages(true);
   await sendChatObject(m);
 }
 
+async function sendMod(kind,m,reason){
+  if(!ADMIN)return;
+  const on=kind==='mute'?!chat.mutes[m.d]:!chat.bans[m.d];
+  const list=kind==='mute'?chat.mutes:chat.bans;
+  if(on)list[m.d]={n:m.n||'Ученик',ts:Date.now(),by:chat.nick||'админ',reason:reason||''};
+  else delete list[m.d];
+  chatSave();applyModState();
+  try{await sendChatObject({op:kind,d:m.d,n:m.n||'Ученик',on:on,by:chat.nick||'админ',reason:reason||'',ts:Date.now()})}catch(e){}
+  toast((on?(kind==='mute'?'Мут: ':'Бан: '):'Снято: ')+(m.n||'ученик'));
+}
+function aiCfg(){
+  return {model:ls.get('ai_model','gemini-2.5-flash-lite'),prompt:ls.get('ai_prompt','')};
+}
+async function sendAi(q){
+  const now=Date.now();
+  if(now-chat.aiCool<20000){
+    toast('ИИ: подождите '+Math.ceil((20000-(now-chat.aiCool))/1000)+' с');
+    return;
+  }
+  chat.aiCool=now;
+  const id='ai-'+uuid();
+  const cfg=aiCfg();
+  const req={op:'aiq',id:id,dev:DEV,n:chat.nick||'Ученик',q:String(q).slice(0,900),model:cfg.model,prompt:cfg.prompt,ts:now};
+  chat.msgs.push({u:id,d:'ai',n:'Gemini',t:'думает…',ts:now,pending:true});
+  chatSave();renderChatMessages(true);
+  try{
+    await postTo(AI_TOPIC,await schedEnc(req));
+  }catch(e){
+    toast('Нет сети — ИИ недоступен');
+  }
+}
+function applyBackground(){
+  const src=ls.get('bg_local','')||ls.get('bg_global','');
+  const bg=$('#bg');
+  if(bg)bg.style.backgroundImage=src?'url("'+src+'")':'';
+  document.body.style.backgroundImage=src?'url("'+src+'")':'';
+}
+function applyModState(){
+  const b=chat.bans[DEV];
+  const scr=$('#banScreen');
+  if(b&&scr){
+    scr.style.display='flex';
+    const who=$('#banBy'),why=$('#banWhy');
+    if(who)who.textContent=(b.by||'админ')+(b.ts?' · '+fmtWhen(b.ts):'');
+    if(why)why.textContent=b.reason||'без причины';
+  }else if(scr){
+    scr.style.display='none';
+  }
+}
 async function shrinkImage(file,max,q){
   try{
     const bmp=await createImageBitmap(file);
@@ -1337,10 +1545,14 @@ function adminSheet(){
   openSheet(
     '<div class="chatHead"><b>Админ-панель</b>'+sheetClose('adm')+'</div>'+
     '<div class="chatNote" style="margin:0 0 14px">Расписание и ДЗ правятся прямо в дне: карандаш у предмета — урок, карандаш справа — ДЗ, крестик — удалить, «+ Добавить урок» — снизу списка.</div>'+
-    '<div class="bar"><button class="btn g" id="a_users">Пользователи</button><button class="btn g" id="a_clear" style="color:#ffb3b3">Очистить чат</button></div>'+
-    '<div class="bar"><button class="btn g" id="a_logout">Выйти из админки</button></div>');
+    '<div class="bar"><button class="btn g" id="a_users">Пользователи</button><button class="btn g" id="a_mod">Баны и муты</button></div>'+
+    '<div class="bar"><button class="btn g" id="a_bg">Фон для всех</button><button class="btn g" id="a_ai">Настройки ИИ</button></div>'+
+    '<div class="bar"><button class="btn g" id="a_clear" style="color:#ffb3b3">Очистить чат</button><button class="btn g" id="a_logout">Выйти</button></div>');
   bindClose();
   $('#a_users').onclick=usersSheet;
+  $('#a_mod').onclick=modSheet;
+  $('#a_bg').onclick=bgAdminSheet;
+  $('#a_ai').onclick=aiSettingsSheet;
   $('#a_clear').onclick=clearChatSheet;
   $('#a_logout').onclick=()=>{ADMIN=false;ls.del('adm');render();toast('Вышли из админки');closeSheet()};
 }
@@ -1366,6 +1578,86 @@ async function clearChatAll(){
   toast('Чат очищен у всех');
 }
 
+function banSheet(m){
+  openSheet(
+    '<div class="chatHead"><b>Бан: '+esc(m.n||'ученик')+'</b>'+sheetClose('bs')+'</div>'+
+    '<div class="fld"><label>Причина (её увидит забаненный)</label><input class="in" id="bs_reason" maxlength="120" placeholder="Например: спам в чате"></div>'+
+    '<div class="bar"><button class="btn" id="bs_ok" style="background:linear-gradient(135deg,#ff9a9a,#d9534f);color:#2a0d0d">Забанить</button><button class="btn g" id="bs_no">Отмена</button></div>');
+  bindClose();
+  $('#bs_no').onclick=closeSheet;
+  $('#bs_ok').onclick=()=>{const r=$('#bs_reason').value.trim();sendMod('ban',m,r);closeSheet()};
+}
+function modSheet(){
+  const rows=[];
+  Object.keys(chat.bans).forEach(d=>rows.push({t:'ban',d:d,v:chat.bans[d]}));
+  Object.keys(chat.mutes).forEach(d=>rows.push({t:'mute',d:d,v:chat.mutes[d]}));
+  const body=rows.length?rows.map(r=>{
+    const v=r.v||{};
+    return '<div class="rows"><div class="row"><span>'+esc(v.n||'Ученик')+' · '+(r.t==='ban'?'бан':'мут')+(v.reason?' · '+esc(v.reason):'')+'</span>'+
+      '<button class="mini g" data-un="'+r.t+':'+esc(r.d)+'">'+(r.t==='ban'?'Разбанить':'Размутить')+'</button></div></div>';
+  }).join(''):'<div class="chatNote">Пока никого не забанили и не замутили.</div>';
+  openSheet('<div class="chatHead"><b>Баны и муты</b>'+sheetClose('mod')+'</div>'+body);
+  bindClose();
+  document.querySelectorAll('#sheet [data-un]').forEach(b=>{
+    b.onclick=()=>{
+      const [kind,dev]=String(b.dataset.un).split(':');
+      const list=kind==='ban'?chat.bans:chat.mutes;
+      delete list[dev];chatSave();
+      sendChatObject({op:kind,d:dev,on:false,by:chat.nick||'админ',ts:Date.now()}).catch(()=>{});
+      toast(kind==='ban'?'Разбанен':'Мут снят');
+      modSheet();
+    };
+  });
+}
+function bgAdminSheet(){
+  openSheet(
+    '<div class="chatHead"><b>Фон для всех</b>'+sheetClose('bg')+'</div>'+
+    '<div class="chatNote" style="margin:0 0 12px">Картинка станет фоном у всех участников. Живёт на сервере ~12 часов.</div>'+
+    '<div class="bar"><button class="btn" id="bg_pick">Выбрать картинку</button><button class="btn g" id="bg_remove">Убрать фон</button></div>'+
+    '<input type="file" id="bg_file" accept="image/*" style="display:none">');
+  bindClose();
+  $('#bg_pick').onclick=()=>$('#bg_file').click();
+  $('#bg_remove').onclick=async()=>{
+    ls.del('bg_global');applyBackground();closeSheet();
+    try{await postTo(SCHED_TOPIC,await schedEnc({op:'bg',url:'',ts:Date.now()}))}catch(e){}
+    toast('Фон убран');
+  };
+  $('#bg_file').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(!f)return;
+    let blob=f,name='fon.jpg',type='image/jpeg';
+    const s=await shrinkImage(f,1600,0.8);
+    if(s)blob=s;
+    toast('Загрузка фона…');
+    try{
+      const ev=await uploadFile(SCHED_TOPIC,await schedEnc({op:'bgwait',ts:Date.now()}),blob,asciiName(name),type);
+      if(ev&&ev.attachment&&ev.attachment.url){
+        ls.set('bg_global',ev.attachment.url);
+        applyBackground();
+        await postTo(SCHED_TOPIC,await schedEnc({op:'bg',url:ev.attachment.url,ts:Date.now()}));
+        toast('Фон установлен для всех');
+        closeSheet();
+      }
+    }catch(err){toast('Не удалось загрузить фон')}
+  };
+}
+function aiSettingsSheet(){
+  const cfg=aiCfg();
+  openSheet(
+    '<div class="chatHead"><b>Настройки ИИ</b>'+sheetClose('ai')+'</div>'+
+    '<div class="fld"><label>Модель Gemini</label><input class="in" id="ai_model" value="'+esc(cfg.model)+'" placeholder="gemini-2.5-flash-lite"></div>'+
+    '<div class="fld"><label>Промпт (характер ответов)</label><textarea class="in" id="ai_prompt" maxlength="800" placeholder="Отвечай коротко и по делу, помогай с домашкой">'+esc(cfg.prompt)+'</textarea></div>'+
+    '<div class="chatNote">В чате: «ai 2+2». Ключ Gemini не хранится на телефонах — он нужен мосту: скрипт tools/ai-bridge.js или GitHub Actions с секретом GEMINI_API_KEY. Мост работает вне России, поэтому ответы приходят и здесь.</div>'+
+    '<div class="bar"><button class="btn" id="ai_save">Сохранить</button></div>');
+  bindClose();
+  $('#ai_save').onclick=()=>{
+    ls.set('ai_model',$('#ai_model').value.trim()||'gemini-2.5-flash-lite');
+    ls.set('ai_prompt',$('#ai_prompt').value.trim());
+    toast('Настройки ИИ сохранены');
+    closeSheet();
+  };
+}
 function liveDay(date){
   const d=dayOf(date)||{date:date,off:false,lessons:[]};
   return {date:date,off:!!d.off,lessons:(d.lessons||[]).map(l=>{const o={subject:l.subject||'',time:l.time||'',hw:l.hw||'',noHw:!!l.noHw};if(l.gdz)o.gdz=l.gdz;return o})};
@@ -1539,6 +1831,11 @@ async function pollSchedUpdates(){
       if(ev.event!=='message'||!ev.message)continue;
       if(ev.id)schedSince=ev.id;
       const u=await schedDec(ev.message);
+      if(u&&u.op==='bg'){
+        if(u.url)ls.set('bg_global',u.url);else ls.del('bg_global');
+        applyBackground();
+        continue;
+      }
       if(u&&Array.isArray(u.days))u.days.forEach(dd=>{
         if(dd&&dd.date){OV[dd.date]=dd;changed=true}
       });
@@ -1684,6 +1981,21 @@ if('serviceWorker' in navigator){
   }
   applyTmplOv();
   applyPrefetch();
+  applyBackground();
+  applyModState();
+  if($('#banInfo'))$('#banInfo').onclick=()=>{
+    const b=chat.bans[DEV];
+    openSheet(
+      '<div class="chatHead"><b>Бан</b>'+sheetClose('ban')+'</div>'+
+      '<div class="rows">'+
+        '<div class="row"><span>Кто забанил</span><b>'+esc(b&&b.by||'админ')+'</b></div>'+
+        '<div class="row"><span>Когда</span><b>'+esc(b&&b.ts?fmtWhen(b.ts):'—')+'</b></div>'+
+      '</div>'+
+      '<div class="chatNote">'+esc(b&&b.reason||'Без причины')+'</div>'+
+      '<div class="bar"><button class="btn g" id="banClose">Закрыть</button></div>');
+    bindClose();
+    $('#banClose').onclick=closeSheet;
+  };
   const todayDay=dayOf(S.sel);
   if(!todayDay||todayDay.off){
     for(let i=1;i<=7;i++){

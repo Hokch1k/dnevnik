@@ -64,6 +64,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void exitApp() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    finishAffinity();
+                }
+            });
+        }
+
+        @JavascriptInterface
         public String loadState() {
             return prefs.getString("ls", "");
         }
