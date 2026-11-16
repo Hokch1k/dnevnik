@@ -332,8 +332,11 @@ async function sync(manual){
       if(manual)toast('Нет подключения к интернету — показаны сохранённые данные');
       return;
     }
-    const urls=sources();
-    const res=await Promise.all(urls.map(u=>fetchJSON(u)));
+    const srcAt=Number(ls.get('src_at','0'))||0;
+    const canSrc=Date.now()-srcAt>300000;
+    if(canSrc)ls.set('src_at',String(Date.now()));
+    const urls=canSrc?sources():[];
+    const res=urls.length?await Promise.all(urls.map(u=>fetchJSON(u))):[];
     const ok=res.filter(r=>r.kind==='ok');
     const nt=(SRC==='gh')?null:await fetchNtfyData();
     const pool=ok.map(r=>r.data);
@@ -366,7 +369,10 @@ async function sync(manual){
     S.syncing=false;
     $('#refreshBtn').classList.remove('syncing');
   }
-  if(navigator.onLine)pollSchedUpdates();
+  if(navigator.onLine){
+    const sAt=Number(ls.get('sched_at','0'))||0;
+    if(Date.now()-sAt>180000){ls.set('sched_at',String(Date.now()));pollSchedUpdates()}
+  }
 }
 function applyPrefetch(){
   const B=nativeBridge();
