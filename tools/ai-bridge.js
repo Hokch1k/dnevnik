@@ -4,12 +4,12 @@
 const crypto = require('crypto');
 
 const SCHED_KEY = Buffer.from('YD5ijw9LbAdrCqqz3XTj3ox9I6Sp6tmfewNK0+s/YNg=', 'base64');
-const AI_TOPIC = 'dnevnikAiHsPJjwoQ5z';
+const AI_TOPIC = process.env.AI_TOPIC_NAME || 'dnevnikAiHsPJjwoQ5z';
 const CHAT_SALT_K = Buffer.from('1Dl+G/fnUz7kNueMLfIvfg==', 'base64');
 const CHAT_TOPIC_SALT = 'dnevnik-chat-2026d';
 const CHAT_ITER = 120000;
 const HOST = 'https://ntfy.sh';
-const MODEL_DEFAULT = 'gemini-2.5-flash-lite';
+const MODEL_DEFAULT = 'gemini-3.5-flash-lite';
 const SYSTEM_DEFAULT = 'Ты помощник школьного чата. Отвечай коротко, по-русски, помогай с домашкой. Код оформляй тройными обратными кавычками с языком.';
 
 const KEY = process.env.GEMINI_API_KEY || '';

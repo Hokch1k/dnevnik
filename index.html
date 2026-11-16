@@ -150,6 +150,7 @@ main.l .card{animation-name:inL}main.r .card{animation-name:inR}
 .banBox b{font-size:24px;display:block;margin-bottom:10px}
 .banWhy{font-size:16px;opacity:.95;margin-bottom:10px}
 .banBy{font-size:13px;opacity:.85;margin-bottom:18px}
+.banScreen.upd{background:#24408e}
 .msg .b{cursor:default}
 .msg .b:empty{display:none}
 .msg .b.editing{padding:7px;background:rgba(10,18,44,.6)}
@@ -223,6 +224,7 @@ video.att{width:100%;max-width:230px}
 
 <div class="sheet" id="sheet"></div>
 <div class="toast" id="toast"></div>
+<div id="updateScreen" class="banScreen upd"><div class="banBox"><div class="banIcon">⬆</div><b>Обновите приложение!</b><div class="banWhy" id="updText">Вышла новая версия</div><button class="btn" id="updGo">Обновить</button></div></div>
 <div id="banScreen" class="banScreen"><div class="banBox"><div class="banIcon">⛔</div><b>Вы забанены!</b><div class="banWhy" id="banWhy">без причины</div><div class="banBy">Забанил: <span id="banBy">админ</span></div><button class="btn g" id="banInfo">Подробнее</button></div></div>
 
 <!--SEED_START-->
@@ -428,7 +430,14 @@ async function checkUpdate(){
     const B=nativeBridge();
     const local=(B&&B.appVersionCode)?B.appVersionCode():APP_CODE;
     if(local<j.code){
-      toast('Доступно обновление '+j.name+' · «i» → «Обновить приложение»');
+      const scr=$('#updateScreen');
+      if(scr){
+        scr.style.display='flex';
+        const tx=$('#updText');
+        if(tx)tx.textContent='Версия '+j.name+' уже доступна';
+      }
+      const go=$('#updGo');
+      if(go)go.onclick=()=>{location.href=SITE+'Dnevnik.apk?t='+Date.now()};
       renderInfoUpdate();
     }
   }catch(e){}
@@ -580,12 +589,13 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');cl
    Тема и ключ выводятся из кода класса, поэтому без кода чат не открыть. */
 const CHAT_HOST='https://ntfy.sh';
 const CHAT_SALT_V='4hwf+0CdaqeqoMKDSFeyLA==';
+const DM_SALT='1Dl+G/fnUz7kNueMLfIvfg==';
 const CHAT_SALT_K='1Dl+G/fnUz7kNueMLfIvfg==';
 const CHAT_CHECK='i+Nhk20CUYFhu0ON6v9ToEkB30SXV0LFsgDBqrLosis=';
 const CHAT_TOPIC_SALT='dnevnik-chat-2026d';
 const CHAT_ITER=120000;
 const CHAT_VER='2';
-const APP_CODE=18;
+const APP_CODE=19;
 const SITE='https://hokch1k.github.io/dnevnik/';
 const ADMIN_SALT_V='PbytsE9TikLQQvkCvR5W1g==';
 const ADMIN_CHECK='tx3reYvfF5x9xcpHoSNOD6yqjlWJDgTDVeU2CN8mmXk=';
@@ -816,6 +826,9 @@ async function ingestEvents(events){
       paintUnread();
       if(NOTIF.chat)pushNote('Чат класса',(last.n||'Ученик')+': '+String(last.t||'').slice(0,120),'chat');
     }
+    if(last&&last.d!==DEV&&String(last.t||'').trim()){
+      popup((last.n||'Ученик')+': '+String(last.t).slice(0,60));
+    }
   }
   return changed;
 }
@@ -996,7 +1009,7 @@ function msgHtml(m){
     }
   }
   let quote='';
-  if(m.rt)quote='<div class="quote"><b>'+esc(m.rt.n||'')+'</b>'+esc(String(m.rt.t||'').slice(0,90))+'</div>';
+  if(m.rt)quote='<div class="quote">'+esc(String(m.rt.t||'').slice(0,120))+'</div>';
   let body;
   if(chat.editU===m.u){
     body='<div class="b editing"><textarea id="msgEdit" maxlength="500">'+esc(m.t||'')+'</textarea>'+
@@ -1310,7 +1323,7 @@ async function sendMod(kind,m,reason){
   toast((on?(kind==='mute'?'Мут: ':'Бан: '):'Снято: ')+(m.n||'ученик'));
 }
 function aiCfg(){
-  return {model:ls.get('ai_model','gemini-2.5-flash-lite'),prompt:ls.get('ai_prompt','')};
+  return {model:ls.get('ai_model','gemini-3.5-flash-lite'),prompt:ls.get('ai_prompt','')};
 }
 async function sendAi(q){
   const now=Date.now();
@@ -1331,7 +1344,8 @@ async function sendAi(q){
   }
 }
 function applyBackground(){
-  const src=ls.get('bg_local','')||ls.get('bg_global','');
+  const th=mergedTheme();
+  const src=th.bgImg||ls.get('bg_local','')||ls.get('bg_global','')||'';
   const bg=$('#bg');
   if(bg)bg.style.backgroundImage=src?'url("'+src+'")':'';
   document.body.style.backgroundImage=src?'url("'+src+'")':'';
@@ -1547,10 +1561,13 @@ function adminSheet(){
     '<div class="chatNote" style="margin:0 0 14px">Расписание и ДЗ правятся прямо в дне: карандаш у предмета — урок, карандаш справа — ДЗ, крестик — удалить, «+ Добавить урок» — снизу списка.</div>'+
     '<div class="bar"><button class="btn g" id="a_users">Пользователи</button><button class="btn g" id="a_mod">Баны и муты</button></div>'+
     '<div class="bar"><button class="btn g" id="a_bg">Фон для всех</button><button class="btn g" id="a_ai">Настройки ИИ</button></div>'+
+    '<div class="bar"><button class="btn g" id="a_theme">Оформление для всех</button><button class="btn g" id="a_dm">Личные сообщения</button></div>'+
     '<div class="bar"><button class="btn g" id="a_clear" style="color:#ffb3b3">Очистить чат</button><button class="btn g" id="a_logout">Выйти</button></div>');
   bindClose();
   $('#a_users').onclick=usersSheet;
   $('#a_mod').onclick=modSheet;
+  $('#a_theme').onclick=themeSheetAdmin;
+  $('#a_dm').onclick=dmSheet;
   $('#a_bg').onclick=bgAdminSheet;
   $('#a_ai').onclick=aiSettingsSheet;
   $('#a_clear').onclick=clearChatSheet;
@@ -1646,18 +1663,216 @@ function aiSettingsSheet(){
   const cfg=aiCfg();
   openSheet(
     '<div class="chatHead"><b>Настройки ИИ</b>'+sheetClose('ai')+'</div>'+
-    '<div class="fld"><label>Модель Gemini</label><input class="in" id="ai_model" value="'+esc(cfg.model)+'" placeholder="gemini-2.5-flash-lite"></div>'+
+    '<div class="fld"><label>Модель Gemini</label><input class="in" id="ai_model" value="'+esc(cfg.model)+'" placeholder="gemini-3.5-flash-lite"></div>'+
     '<div class="fld"><label>Промпт (характер ответов)</label><textarea class="in" id="ai_prompt" maxlength="800" placeholder="Отвечай коротко и по делу, помогай с домашкой">'+esc(cfg.prompt)+'</textarea></div>'+
     '<div class="chatNote">В чате: «ai 2+2». Ключ Gemini не хранится на телефонах — он нужен мосту: скрипт tools/ai-bridge.js или GitHub Actions с секретом GEMINI_API_KEY. Мост работает вне России, поэтому ответы приходят и здесь.</div>'+
     '<div class="bar"><button class="btn" id="ai_save">Сохранить</button></div>');
   bindClose();
   $('#ai_save').onclick=()=>{
-    ls.set('ai_model',$('#ai_model').value.trim()||'gemini-2.5-flash-lite');
+    ls.set('ai_model',$('#ai_model').value.trim()||'gemini-3.5-flash-lite');
     ls.set('ai_prompt',$('#ai_prompt').value.trim());
     toast('Настройки ИИ сохранены');
     closeSheet();
   };
 }
+function mergedTheme(){
+  let g={},l={};
+  try{g=JSON.parse(ls.get('theme_global','{}'))||{}}catch(e){}
+  try{l=JSON.parse(ls.get('theme_local','{}'))||{}}catch(e){}
+  return Object.assign({},g,l);
+}
+function themeApply(){
+  const th=mergedTheme(),root=document.documentElement;
+  root.style.setProperty('--bg',th.bg||'#0b1226');
+  root.style.setProperty('--ink',th.ink||'#eaf3ff');
+  if(th.accent)root.style.setProperty('--a',th.accent);else root.style.removeProperty('--a');
+  let st=$('#fontStyle');
+  if(th.font){
+    if(!st){st=document.createElement('style');st.id='fontStyle';document.head.appendChild(st)}
+    st.textContent='@font-face{font-family:DnevnikFont;src:url("'+th.font+'")}html,body{font-family:DnevnikFont,system-ui,sans-serif}';
+  }else if(st)st.textContent='';
+  applyBackground();
+}
+async function publishTheme(th){
+  ls.set('theme_global',JSON.stringify(th||{}));
+  themeApply();
+  try{await postTo(SCHED_TOPIC,await schedEnc({op:'theme',theme:th||null,ts:Date.now()}))}catch(e){}
+}
+function themeSheetUser(){
+  const th=JSON.parse(ls.get('theme_local','{}')||'{}');
+  openSheet(
+    '<div class="chatHead"><b>Оформление (только у меня)</b>'+sheetClose('thu')+'</div>'+
+    '<div class="fld"><label>Цвет фона</label><input class="in" type="color" id="tu_bg" value="'+esc(th.bg||'#0b1226')+'"></div>'+
+    '<div class="fld"><label>Цвет текста</label><input class="in" type="color" id="tu_ink" value="'+esc(th.ink||'#eaf3ff')+'"></div>'+
+    '<div class="fld"><button class="btn g" id="tu_bgimg" style="width:100%">Свой фон (картинка)</button><input type="file" id="tu_file" accept="image/*" style="display:none"><div class="chatNote" id="tu_status"></div></div>'+
+    '<div class="bar"><button class="btn" id="tu_save">Сохранить</button><button class="btn g" id="tu_reset">Сбросить</button></div>');
+  bindClose();
+  $('#tu_bgimg').onclick=()=>$('#tu_file').click();
+  $('#tu_file').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(!f)return;
+    const blob=(await shrinkImage(f,1200,0.75))||f;
+    const fr=new FileReader();
+    fr.onload=()=>{const cur=JSON.parse(ls.get('theme_local','{}')||'{}');cur.bgImg=fr.result;ls.set('theme_local',JSON.stringify(cur));$('#tu_status').textContent='Фон выбран';themeApply()};
+    fr.readAsDataURL(blob);
+  };
+  $('#tu_save').onclick=()=>{
+    const cur=JSON.parse(ls.get('theme_local','{}')||'{}');
+    cur.bg=$('#tu_bg').value;cur.ink=$('#tu_ink').value;
+    ls.set('theme_local',JSON.stringify(cur));
+    themeApply();toast('Оформление сохранено');closeSheet();
+  };
+  $('#tu_reset').onclick=()=>{ls.del('theme_local');themeApply();toast('Сброшено');closeSheet()};
+}
+function themeSheetAdmin(){
+  const th=JSON.parse(ls.get('theme_global','{}')||'{}');
+  openSheet(
+    '<div class="chatHead"><b>Оформление для всех</b>'+sheetClose('tha')+'</div>'+
+    '<div class="fld"><label>Цвет фона</label><input class="in" type="color" id="ta_bg" value="'+esc(th.bg||'#0b1226')+'"></div>'+
+    '<div class="fld"><label>Цвет текста</label><input class="in" type="color" id="ta_ink" value="'+esc(th.ink||'#eaf3ff')+'"></div>'+
+    '<div class="fld"><label>Акцент</label><input class="in" type="color" id="ta_acc" value="'+esc(th.accent||'#7cc7ff')+'"></div>'+
+    '<div class="fld"><button class="btn g" id="ta_font" style="width:100%">Шрифт (.ttf)</button><button class="btn g" id="ta_img" style="width:100%;margin-top:8px">Фон-картинка для всех</button><input type="file" id="ta_fontfile" accept=".ttf,.otf" style="display:none"><input type="file" id="ta_imgfile" accept="image/*" style="display:none"><div class="chatNote" id="ta_status"></div></div>'+
+    '<div class="bar"><button class="btn" id="ta_save">Сохранить для всех</button><button class="btn g" id="ta_reset">Сбросить</button></div>');
+  bindClose();
+  const cur=Object.assign({},th);
+  $('#ta_font').onclick=()=>$('#ta_fontfile').click();
+  $('#ta_img').onclick=()=>$('#ta_imgfile').click();
+  $('#ta_fontfile').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];e.target.value='';
+    if(!f)return;
+    $('#ta_status').textContent='Загрузка шрифта…';
+    try{
+      const ev=await uploadFile(SCHED_TOPIC,await schedEnc({op:'fontwait',ts:Date.now()}),f,asciiName(f.name||'font.ttf'),'font/ttf');
+      if(ev&&ev.attachment){cur.font=ev.attachment.url;themeApply();$('#ta_status').textContent='Шрифт прикреплён'}
+    }catch(err){$('#ta_status').textContent='Не удалось загрузить'}
+  };
+  $('#ta_imgfile').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];e.target.value='';
+    if(!f)return;
+    $('#ta_status').textContent='Загрузка фона…';
+    try{
+      const blob=(await shrinkImage(f,1600,0.8))||f;
+      const ev=await uploadFile(SCHED_TOPIC,await schedEnc({op:'imgwait',ts:Date.now()}),blob,'bg.jpg','image/jpeg');
+      if(ev&&ev.attachment){cur.bgImg=ev.attachment.url;themeApply();$('#ta_status').textContent='Фон прикреплён'}
+    }catch(err){$('#ta_status').textContent='Не удалось загрузить'}
+  };
+  $('#ta_save').onclick=()=>{
+    cur.bg=$('#ta_bg').value;cur.ink=$('#ta_ink').value;cur.accent=$('#ta_acc').value;
+    publishTheme(cur).then(()=>{toast('Оформление для всех сохранено');closeSheet()});
+  };
+  $('#ta_reset').onclick=()=>{publishTheme(null).then(()=>{toast('Сброшено');closeSheet()})};
+}
+
+/* ---------- личные сообщения ---------- */
+function myDmCode(){
+  let c=ls.get('my_dm','');
+  if(!c){
+    const abc='abcdefghjkmnpqrstuvwxyz23456789';
+    c='';
+    const rnd=new Uint8Array(8);crypto.getRandomValues(rnd);
+    for(let i=0;i<8;i++)c+=abc[rnd[i]%abc.length];
+    ls.set('my_dm',c);
+  }
+  return c;
+}
+function dmTopic(code){
+  let a=5381,b=52711;
+  for(let i=0;i<code.length;i++){a=((a<<5)+a+code.charCodeAt(i))>>>0;b=((b<<7)-b+code.charCodeAt(i))>>>0}
+  return 'dnevnikDM'+a.toString(36)+b.toString(36);
+}
+async function dmKey(code){
+  const bits=await deriveBits('dm:'+code,DM_SALT);
+  return await crypto.subtle.importKey('raw',bits,{name:'AES-GCM'},false,['encrypt','decrypt']);
+}
+async function dmEnc(code,obj){return encWith(await dmKey(code),obj)}
+async function dmDec(code,str){return decWith(await dmKey(code),str)}
+function dmPeers(){try{return JSON.parse(ls.get('dm_peers','[]'))||[]}catch(e){return []}}
+function dmSavePeers(a){ls.set('dm_peers',JSON.stringify(a))}
+function dmSheet(){
+  const peers=dmPeers();
+  const list=peers.length?peers.map((p,i)=>'<div class="row"><span>'+esc(p.name||p.code)+'</span><button class="mini" data-dm="'+i+'">Открыть</button></div>').join(''):'<div class="chatNote">Пока нет личных чатов.</div>';
+  openSheet(
+    '<div class="chatHead"><b>Личные сообщения</b>'+sheetClose('dm')+'</div>'+
+    '<div class="rows"><div class="row"><span>Мой код</span><b>'+esc(myDmCode())+'</b></div></div>'+
+    '<div class="chatNote">Дай этот код другу. Кто его знает — может открыть с тобой личный чат. Админы его не видят.</div>'+
+    '<div class="fld"><label>Код друга</label><input class="in" id="dm_code" maxlength="16" placeholder="например, abcd2345"></div>'+
+    '<div class="fld"><label>Имя (как подписать чат)</label><input class="in" id="dm_name" maxlength="24" placeholder="Саша"></div>'+
+    '<div class="bar"><button class="btn" id="dm_add">Открыть чат</button></div>'+
+    '<div class="rows">'+list+'</div>');
+  bindClose();
+  $('#dm_add').onclick=()=>{
+    const code=$('#dm_code').value.trim().toLowerCase();
+    const name=$('#dm_name').value.trim()||code;
+    if(code.length<4){toast('Код слишком короткий');return}
+    const arr=dmPeers();
+    if(!arr.some(p=>p.code===code))arr.push({code:code,name:name});
+    dmSavePeers(arr);
+    dmOpen(code,name);
+  };
+  document.querySelectorAll('#sheet [data-dm]').forEach(b=>{
+    b.onclick=()=>{const p=dmPeers()[+b.dataset.dm];if(p)dmOpen(p.code,p.name)};
+  });
+}
+let dmSocket=null,dmCur=null;
+function dmMsgs(code){try{return JSON.parse(ls.get('dm_'+code,'[]'))||[]}catch(e){return []}}
+function dmSaveMsgs(code,a){ls.set('dm_'+code,JSON.stringify(a))}
+function dmOpen(code,name){
+  dmCur={code:code,name:name};
+  const msgs=dmMsgs(code);
+  openSheet(
+    '<div class="chatHead"><b>'+esc(name||code)+'</b><span id="dmState"></span>'+sheetClose('dmc')+'</div>'+
+    '<div class="chatList" id="dmList"></div>'+
+    '<div class="chatBar"><input class="in" id="dmInput" placeholder="Сообщение…" maxlength="500"><button class="btn" id="dmSend">→</button></div>');
+  bindClose();
+  paintDm();
+  $('#dmSend').onclick=dmSend;
+  $('#dmInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();dmSend()}});
+  dmConnect(code);
+}
+function paintDm(){
+  const box=$('#dmList');
+  if(!box||!dmCur)return;
+  const msgs=dmMsgs(dmCur.code);
+  box.innerHTML=msgs.length?msgs.map(m=>{
+    const me=m.d===DEV;
+    return '<div class="msg'+(me?' me':'')+'"><div class="b">'+fmtText(m.t)+'</div><div class="meta">'+esc(me?'Ты':(m.n||dmCur.name))+' · '+fmtTime(m.ts)+'</div></div>';
+  }).join(''):'<div class="chatNote" style="text-align:center;padding:16px 0">Сообщений пока нет.</div>';
+  box.scrollTop=box.scrollHeight;
+}
+async function dmSend(){
+  const inp=$('#dmInput');
+  const t=inp&&inp.value.trim();
+  if(!t||!dmCur)return;
+  inp.value='';
+  const m={u:uuid(),d:DEV,n:chat.nick||'Ученик',t:t.slice(0,500),ts:Date.now()};
+  const arr=dmMsgs(dmCur.code);arr.push(m);dmSaveMsgs(dmCur.code,arr);paintDm();
+  try{
+    await fetch(CHAT_HOST+'/'+dmTopic(dmCur.code),{method:'POST',body:await dmEnc(dmCur.code,m)});
+  }catch(e){
+    const st=$('#dmState');if(st)st.textContent='нет сети';
+  }
+}
+function dmConnect(code){
+  try{
+    if(dmSocket){try{dmSocket.close()}catch(e){}}
+    dmSocket=new WebSocket('wss://ntfy.sh/'+dmTopic(code)+'/ws?since=all');
+    dmSocket.onmessage=async ev=>{
+      let e;try{e=JSON.parse(ev.data)}catch(err){return}
+      if(e.event!=='message'||!e.message)return;
+      const m=await dmDec(code,e.message);
+      if(!m||!m.u||m.d===DEV)return;
+      const arr=dmMsgs(code);
+      if(arr.some(x=>x.u===m.u))return;
+      arr.push({u:m.u,d:m.d,n:m.n||chat.nick,t:m.t,ts:m.ts||Date.now()});
+      dmSaveMsgs(code,arr);
+      if(dmCur&&dmCur.code===code)paintDm();
+      popup((m.n||'Личное')+': '+String(m.t||'').slice(0,50));
+    };
+    dmSocket.onclose=()=>{if(dmCur&&dmCur.code===code)setTimeout(()=>dmConnect(code),5000)};
+  }catch(e){}
+}
+
 function liveDay(date){
   const d=dayOf(date)||{date:date,off:false,lessons:[]};
   return {date:date,off:!!d.off,lessons:(d.lessons||[]).map(l=>{const o={subject:l.subject||'',time:l.time||'',hw:l.hw||'',noHw:!!l.noHw};if(l.gdz)o.gdz=l.gdz;return o})};
@@ -1875,7 +2090,7 @@ function renderUsers(){
     const p=chat.pres[d];
     if(!p||now-(p.ts||0)>86400000)return;
     const key=(p.n||'Ученик')+'|'+(d===DEV?'1':'0');
-    if(!byName[key]||p.ts>byName[key].ts)byName[key]={n:p.n||'Ученик',ts:p.ts,me:d===DEV};
+    if(!byName[key]||p.ts>byName[key].ts)byName[key]={n:p.n||'Ученик',ts:p.ts,me:d===DEV,d:d};
   });
   const list=Object.values(byName).sort((a,b)=>b.ts-a.ts);
   if(!list.length){
@@ -1884,8 +2099,34 @@ function renderUsers(){
   }
   box.innerHTML=list.map(u=>{
     const on=now-u.ts<720000;
-    return '<div class="user"><i class="'+(on?'on':'')+'"></i><b>'+esc(u.n)+(u.me?' (ты)':'')+'</b><small>'+(on?'онлайн':'был(а) '+fmtWhen(u.ts))+'</small></div>';
+    const acts=ADMIN&&!u.me
+      ?'<div class="userActs">'+
+        '<button class="mini g" data-mod="mute:'+esc(u.d)+'">'+(chat.mutes[u.d]?'Размут':'Мут')+'</button>'+
+        '<button class="mini g" data-mod="ban:'+esc(u.d)+'">'+(chat.bans[u.d]?'Разбан':'Бан')+'</button>'+
+        '<button class="mini g" data-mod="kick:'+esc(u.d)+'">Кик</button>'+
+       '</div>'
+      :'';
+    return '<div class="user"><i class="'+(on?'on':'')+'"></i><b>'+esc(u.n)+(u.me?' (ты)':'')+'</b><small>'+(on?'онлайн':'был(а) '+fmtWhen(u.ts))+'</small>'+acts+'</div>';
   }).join('')+'<div class="chatNote">«Онлайн» — активность за последние 12 минут.</div>';
+  if(ADMIN&&$('#usersBox')){
+    document.querySelectorAll('#usersBox [data-mod]').forEach(b=>{
+      b.onclick=()=>{
+        const [kind,dev]=String(b.dataset.mod).split(':');
+        const nm=(list.find(x=>x.d===dev)||{}).n||'ученик';
+        const fake={d:dev,n:nm};
+        if(kind==='kick'){
+          sendChatObject({op:'kick',d:dev,n:nm,ts:Date.now()}).catch(()=>{});
+          toast('Кикнут: '+nm);
+        }else if(kind==='mute'){
+          sendMod('mute',fake);
+          setTimeout(renderUsers,300);
+        }else{
+          if(chat.bans[dev]){sendMod('ban',fake);setTimeout(renderUsers,300)}
+          else{banSheet(fake);setTimeout(renderUsers,600)}
+        }
+      };
+    });
+  }
 }
 
 $('#chatBtn').onclick=openChat;
@@ -1916,6 +2157,7 @@ function infoSheet(){
       '<button data-m="ntfy"'+(SRC==='ntfy'?' class="on"':'')+'>ntfy</button>'+
     '</div></div>'+
    '<div class="bar"><button class="btn" id="s_sync">Обновить сейчас</button><button class="btn g" id="s_nick">Имя в чате</button></div>'+
+    '<div class="bar"><button class="btn g" id="s_theme">Оформление</button><button class="btn g" id="s_dm">Личные сообщения</button></div>'+
     '<div class="bar"><button class="btn g" id="s_notif">Уведомления</button><button class="btn g" id="s_admin">Админ</button></div>'+
     '<div class="bar"><button class="btn" id="s_update" style="display:none">Обновить приложение</button></div>'+
     '<div class="bar"><button class="btn g" id="s_install" style="display:none">Установить приложение</button><button class="btn g" id="s_close">Закрыть</button></div>'+
@@ -1924,6 +2166,8 @@ function infoSheet(){
   $('#s_sync').onclick=()=>{closeSheet();sync(true)};
   $('#s_close').onclick=closeSheet;
   $('#s_nick').onclick=nickSheet;
+  $('#s_theme').onclick=themeSheetUser;
+  $('#s_dm').onclick=dmSheet;
   $('#s_notif').onclick=notifSheet;
   $('#s_admin').onclick=adminEntry;
   $('#s_src').onclick=e=>{
@@ -1982,6 +2226,7 @@ if('serviceWorker' in navigator){
   applyTmplOv();
   applyPrefetch();
   applyBackground();
+  themeApply();
   applyModState();
   if($('#banInfo'))$('#banInfo').onclick=()=>{
     const b=chat.bans[DEV];
