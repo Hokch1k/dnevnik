@@ -22,9 +22,17 @@ class Client{
       else if(m.method==='Runtime.exceptionThrown'){console.log('EXC',String((m.params.exceptionDetails.exception||{}).description||'').slice(0,200));}};}
   open(){return new Promise((r,j)=>{this.ws.onopen=r;this.ws.onerror=j})}
   send(method,params){const id=++this.id;return new Promise((res,rej)=>{this.pending.set(id,{resolve:res,reject:rej});this.ws.send(JSON.stringify({id,method,params:params||{}}))})}
-  async eval(e){const r=await this.send('Runtime.evaluate',{expression:e,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result.value}
+  async eval(e){const r=await this.send('Runtime.evaluate',{expression:e,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error((r.exceptionDetails.exception&&r.exceptionDetails.exception.description)||r.exceptionDetails.text);return r.result.value}
 }
-function dmTopic(code){let a=5381,b=52711;for(let i=0;i<code.length;i++){a=((a<<5)+a+code.charCodeAt(i))>>>0;b=((b<<7)-b+code.charCodeAt(i))>>>0}return 'dnevnikDM'+a.toString(36)+b.toString(36)}
+function dmPair(a,b){return [String(a).toLowerCase(),String(b).toLowerCase()].sort().join('|')}
+function dmTopicFor(a,b){const id=dmPair(a,b);let x=5381,y=52711;for(let i=0;i<id.length;i++){x=((x<<5)+x+id.charCodeAt(i))>>>0;y=((y<<7)-y+id.charCodeAt(i))>>>0}return 'dnevnikDM'+x.toString(36)+y.toString(36)}
+function dmEncFor(a,b,obj){
+  const key=crypto.pbkdf2Sync('dm:'+dmPair(a,b),DM_SALT,120000,32,'sha256');
+  const iv=crypto.randomBytes(12);
+  const c=crypto.createCipheriv('aes-256-gcm',key,iv);
+  const ct=Buffer.concat([c.update(JSON.stringify(obj),'utf8'),c.final(),c.getAuthTag()]);
+  return iv.toString('base64')+'.'+ct.toString('base64');
+}
 function dmEnc(code,obj){
   const key=crypto.pbkdf2Sync('dm:'+code,DM_SALT,120000,32,'sha256');
   const iv=crypto.randomBytes(12);
@@ -54,10 +62,11 @@ function dmEnc(code,obj){
     }
 
     await c.eval(`dmSheet()`);await sleep(300);
-    const myCode=await c.eval(`myDmCode()`);
-    console.log('my code:',myCode, 'length',String(myCode).length);
+    const myCode=await c.eval(`document.querySelector('#dm_me').value||''`);
+    console.log('my username:',myCode);
+    const me='user'+Math.random().toString(36).slice(2,7);
     const friend='friend'+Math.random().toString(36).slice(2,7);
-    await c.eval(`(()=>{document.querySelector('#dm_code').value=${JSON.stringify(friend)};document.querySelector('#dm_name').value='Друг';document.querySelector('#dm_add').click()})()`);
+    await c.eval(`(()=>{document.querySelector('#dm_me').value=${JSON.stringify(me)};document.querySelector('#dm_code').value=${JSON.stringify(friend)};document.querySelector('#dm_add').click()})()`);
     await sleep(500);
     console.log('dm opened:',await c.eval(`!!document.querySelector('#dmInput')`));
 
@@ -66,9 +75,10 @@ function dmEnc(code,obj){
     console.log('local dm msg:',await c.eval(`(dmMsgs(${JSON.stringify(friend)}).slice(-1)[0]||{}).t`));
 
     // входящее от «друга»
-    const incoming={u:'in1',d:'friend-dev',n:'Друг',t:'ответ тебе',ts:Date.now()};
-    await fetch('https://ntfy.sh/'+dmTopic(friend),{method:'POST',body:dmEnc(friend,incoming)});
-    await sleep(2500);
+    const incoming={u:'in1',d:'friend-dev',n:friend,t:'ответ тебе',ts:Date.now()};
+    const rr=await fetch('https://ntfy.sh/'+dmTopicFor(me,friend),{method:'POST',body:dmEncFor(me,friend,incoming)});
+    console.log('post status:',rr.status,'topic:',dmTopicFor(me,friend));
+    await sleep(4000);
     console.log('incoming dm:',await c.eval(`!!dmMsgs(${JSON.stringify(friend)}).find(x=>x.u==='in1')`));
   }finally{chrome.kill()}
 })().catch(e=>{console.error('FAIL',e.message);process.exit(1)});
